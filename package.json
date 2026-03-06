@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@types/express": "5.0.6",
-    "@smithery/cli": "2.2.1",
+    "@smithery/cli": "4.4.0",
     "@types/node": "24.10.13",
     "prettier": "3.8.1",
     "shx": "0.4.0",
