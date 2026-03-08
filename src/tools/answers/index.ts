@@ -28,7 +28,8 @@ export const description = `
 `;
 
 export const execute = async (inputParams: AnswersParams) => {
-  const { query, country, language, enable_research, enable_citations, enable_entities } = inputParams;
+  const { query, country, language, enable_research, enable_citations, enable_entities } =
+    inputParams;
 
   // Citations and entities require Brave's streaming mode; BraveAPI assembles the SSE chunks transparently.
   const needsStreaming = enable_citations === true || enable_entities === true;

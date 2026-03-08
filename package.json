@@ -1,21 +1,25 @@
 {
   "name": "@brave/brave-search-mcp-server",
-  "mcpName": "io.github.brave/brave-search-mcp-server",
-  "version": "2.0.75",
-  "description": "Brave Search MCP Server: web results, images, videos, rich results, AI summaries, and more.",
+  "mcpName": "io.github.tobiashochguertel/brave-search-mcp-server",
+  "version": "2.1.0",
+  "description": "Community fork of the official Brave Search MCP Server with full API coverage: web, news, images, videos, local, LLM context, summarizer, autosuggest, spellcheck, and AI answers (with streaming support).",
   "keywords": [
     "api",
     "brave",
     "mcp",
-    "search"
+    "search",
+    "answers",
+    "autosuggest",
+    "spellcheck",
+    "llm-context"
   ],
   "license": "MIT",
   "author": "Brave Software, Inc. (https://brave.com)",
-  "homepage": "https://github.com/brave/brave-search-mcp-server",
-  "bugs": "https://github.com/brave/brave-search-mcp-server/issues",
+  "homepage": "https://github.com/tobiashochguertel/brave-search-mcp-server",
+  "bugs": "https://github.com/tobiashochguertel/brave-search-mcp-server/issues",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brave/brave-search-mcp-server.git"
+    "url": "https://github.com/tobiashochguertel/brave-search-mcp-server.git"
   },
   "type": "module",
   "module": "dist/server.js",

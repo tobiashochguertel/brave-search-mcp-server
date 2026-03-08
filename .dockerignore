@@ -16,7 +16,6 @@ coverage
 .vscode
 .idea
 *.test.ts
-tsconfig*.json
 .prettierrc
 .prettierignore
 docker-compose.yml

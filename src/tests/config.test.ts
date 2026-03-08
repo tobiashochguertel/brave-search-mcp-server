@@ -54,7 +54,10 @@ describe('Config', () => {
     it('pro AI key takes priority over free AI key for summarizer', () => {
       process.env.BRAVE_PRO_AI_API_KEY = 'pro-ai-key';
       process.env.BRAVE_AI_API_KEY = 'free-ai-key';
-      const key = process.env.BRAVE_PRO_AI_API_KEY || process.env.BRAVE_AI_API_KEY || process.env.BRAVE_API_KEY;
+      const key =
+        process.env.BRAVE_PRO_AI_API_KEY ||
+        process.env.BRAVE_AI_API_KEY ||
+        process.env.BRAVE_API_KEY;
       expect(key).toBe('pro-ai-key');
     });
   });

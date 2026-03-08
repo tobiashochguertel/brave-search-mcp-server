@@ -28,10 +28,7 @@ export const execute = async (inputParams: LLMContextParams) => {
 
   const content: { type: 'text'; text: string }[] = [];
 
-  const items = [
-    ...(response.grounding?.generic ?? []),
-    ...(response.grounding?.map ?? []),
-  ];
+  const items = [...(response.grounding?.generic ?? []), ...(response.grounding?.map ?? [])];
 
   if (items.length > 0) {
     const contextText = items

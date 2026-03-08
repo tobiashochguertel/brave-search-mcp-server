@@ -122,9 +122,28 @@ tasks:
   # ---------------------------------------------------------------------------
 
   docker:build:
-    desc: Build Docker image
+    desc: Build Docker image (tag brave-search-mcp-server:latest)
     cmds:
-      - docker build -t brave-search-mcp-server .
+      - docker build -t brave-search-mcp-server:latest .
+
+  docker:build:nc:
+    desc: Build Docker image without cache
+    cmds:
+      - docker build --no-cache -t brave-search-mcp-server:latest .
+
+  docker:lint:
+    desc: Lint Dockerfile with hadolint (install with brew install hadolint)
+    cmds:
+      - hadolint Dockerfile
+
+  docker:push:
+    desc: Push Docker image to registry (set DOCKER_REGISTRY and DOCKER_TAG)
+    vars:
+      REGISTRY: '{{.DOCKER_REGISTRY | default "ghcr.io/tobiashochguertel"}}'
+      TAG: '{{.DOCKER_TAG | default "latest"}}'
+    cmds:
+      - docker tag brave-search-mcp-server:latest {{.REGISTRY}}/brave-search-mcp-server:{{.TAG}}
+      - docker push {{.REGISTRY}}/brave-search-mcp-server:{{.TAG}}
 
   docker:up:
     desc: Start MCP server via docker-compose (HTTP mode)
@@ -141,13 +160,27 @@ tasks:
     cmds:
       - docker-compose logs -f
 
+  docker:compose:validate:
+    desc: Validate docker-compose.yml syntax
+    cmds:
+      - docker-compose config --quiet && echo "docker-compose.yml is valid"
+
   # ---------------------------------------------------------------------------
   # Release
   # ---------------------------------------------------------------------------
 
   release:check:
-    desc: Validate build, tests and formatting before release
+    desc: Validate build, tests, formatting and docker before release
     cmds:
       - task: lint
       - task: build
       - task: test
+      - task: docker:build
+
+  release:full:
+    desc: Full release check including e2e tests (requires API keys)
+    cmds:
+      - task: lint
+      - task: build
+      - task: test:all
+      - task: docker:build

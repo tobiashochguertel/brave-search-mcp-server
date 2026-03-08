@@ -126,13 +126,41 @@ export function isToolPermittedByUser(toolName: string): boolean {
 
 export function getOptions(): Configuration | false {
   const program = new Command()
-    .option('--brave-api-key <string>', 'Default/fallback Brave API key', process.env.BRAVE_API_KEY ?? '')
-    .option('--brave-search-api-key <string>', 'API key for Search plan (web, news, images, videos, local, llm-context)', process.env.BRAVE_SEARCH_API_KEY ?? '')
-    .option('--brave-ai-api-key <string>', 'API key for Free AI plan (summarizer)', process.env.BRAVE_AI_API_KEY ?? '')
-    .option('--brave-pro-ai-api-key <string>', 'API key for Pro AI plan (summarizer, deprecated)', process.env.BRAVE_PRO_AI_API_KEY ?? '')
-    .option('--brave-answers-api-key <string>', 'API key for Answers plan (chat completions)', process.env.BRAVE_ANSWERS_API_KEY ?? '')
-    .option('--brave-autosuggest-api-key <string>', 'API key for Autosuggest plan', process.env.BRAVE_AUTOSUGGEST_API_KEY ?? '')
-    .option('--brave-spellcheck-api-key <string>', 'API key for Spellcheck plan', process.env.BRAVE_SPELLCHECK_API_KEY ?? '')
+    .option(
+      '--brave-api-key <string>',
+      'Default/fallback Brave API key',
+      process.env.BRAVE_API_KEY ?? ''
+    )
+    .option(
+      '--brave-search-api-key <string>',
+      'API key for Search plan (web, news, images, videos, local, llm-context)',
+      process.env.BRAVE_SEARCH_API_KEY ?? ''
+    )
+    .option(
+      '--brave-ai-api-key <string>',
+      'API key for Free AI plan (summarizer)',
+      process.env.BRAVE_AI_API_KEY ?? ''
+    )
+    .option(
+      '--brave-pro-ai-api-key <string>',
+      'API key for Pro AI plan (summarizer, deprecated)',
+      process.env.BRAVE_PRO_AI_API_KEY ?? ''
+    )
+    .option(
+      '--brave-answers-api-key <string>',
+      'API key for Answers plan (chat completions)',
+      process.env.BRAVE_ANSWERS_API_KEY ?? ''
+    )
+    .option(
+      '--brave-autosuggest-api-key <string>',
+      'API key for Autosuggest plan',
+      process.env.BRAVE_AUTOSUGGEST_API_KEY ?? ''
+    )
+    .option(
+      '--brave-spellcheck-api-key <string>',
+      'API key for Spellcheck plan',
+      process.env.BRAVE_SPELLCHECK_API_KEY ?? ''
+    )
     .option('--logging-level <string>', 'Logging level', process.env.BRAVE_MCP_LOG_LEVEL ?? 'info')
     .option(
       '--transport <stdio|http>',
@@ -274,7 +302,9 @@ export function getBraveApiBaseUrl(): string {
  *
  * Falls back to BRAVE_API_KEY if a subscription-specific key is not configured.
  */
-export function getApiKeyForEndpoint(endpoint: keyof import('./BraveAPI/types.js').Endpoints): string {
+export function getApiKeyForEndpoint(
+  endpoint: keyof import('./BraveAPI/types.js').Endpoints
+): string {
   switch (endpoint) {
     case 'web':
     case 'news':
@@ -286,10 +316,20 @@ export function getApiKeyForEndpoint(endpoint: keyof import('./BraveAPI/types.js
       return state.braveSearchApiKey || state.braveApiKey;
     case 'answers':
       // Answers plan is primary; fallback to proAi → freeAi → default
-      return state.braveAnswersApiKey || state.braveProAiApiKey || state.braveAiApiKey || state.braveApiKey;
+      return (
+        state.braveAnswersApiKey ||
+        state.braveProAiApiKey ||
+        state.braveAiApiKey ||
+        state.braveApiKey
+      );
     case 'summarizer':
       // Pro AI key takes priority; fallback chain: proAi → answers → freeAi → default
-      return state.braveProAiApiKey || state.braveAnswersApiKey || state.braveAiApiKey || state.braveApiKey;
+      return (
+        state.braveProAiApiKey ||
+        state.braveAnswersApiKey ||
+        state.braveAiApiKey ||
+        state.braveApiKey
+      );
     case 'suggest':
       return state.braveAutosuggestApiKey || state.braveApiKey;
     case 'spellcheck':

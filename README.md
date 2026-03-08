@@ -1,8 +1,15 @@
-# Brave Search MCP Server
+# Brave Search MCP Server (Community Fork)
 
-An MCP server implementation that integrates the Brave Search API, providing comprehensive search capabilities including web search, local business search, image search, video search, news search, and AI-powered summarization. This project supports both STDIO and HTTP transports, with STDIO as the default mode.
+> **This is a community fork** of the [official Brave Search MCP Server](https://github.com/brave/brave-search-mcp-server) by Brave Software.
+> It extends the original with **full coverage of all Brave Search API endpoints**:
+> autosuggest, spellcheck, LLM context grounding, and AI answers (including streaming for citations and entities).
+> A custom `BRAVE_API_BASE_URL` setting lets you route all traffic through a caching proxy (e.g. [brave-search-cli](https://github.com/tobiashochguertel/dotfiles)).
+>
+> Fork maintained by [@tobiashochguertel](https://github.com/tobiashochguertel).
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/brave/brave-search-mcp-server)
+An MCP server implementation that integrates the Brave Search API, providing comprehensive search capabilities including web search, local business search, image search, video search, news search, AI-powered summarization, autosuggest, spellcheck, LLM context grounding, and AI answers. This project supports both STDIO and HTTP transports, with STDIO as the default mode.
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/tobiashochguertel/brave-search-mcp-server)
 
 ## Migration
 
@@ -98,6 +105,59 @@ Generates AI-powered summaries from web search results using Brave's summarizati
 
 **Usage:** First perform a web search with `summary: true`, then use the returned summary key with this tool.
 
+### Autosuggest (`brave_autosuggest`)
+Returns query completion suggestions as-you-type, powered by Brave's autosuggest API.
+
+**Parameters:**
+- `query` (string, required): Partial query text to complete (max 400 chars)
+- `country` (string, optional): Country code (default: "US")
+- `lang` (string, optional): Language code (default: "en")
+- `count` (number, optional): Number of suggestions (1-20, default: 10)
+
+**Requires:** `BRAVE_AUTOSUGGEST_API_KEY`
+
+### Spellcheck (`brave_spellcheck`)
+Checks spelling and suggests corrections using Brave's spellcheck API.
+
+**Parameters:**
+- `query` (string, required): Text to spell-check (max 400 chars)
+- `country` (string, optional): Country/locale code (default: "US")
+- `lang` (string, optional): Language code (default: "en")
+
+**Returns:** Corrected text and individual token corrections (empty array if all correct).
+
+**Requires:** `BRAVE_SPELLCHECK_API_KEY`
+
+### LLM Context (`brave_llm_context`)
+Retrieves pre-extracted, relevance-scored web content optimised for grounding LLM responses in real-time search results.
+
+**Parameters:**
+- `query` (string, required): Query to retrieve grounding context for (max 400 chars)
+- `country` (string, optional): Country code (default: "US")
+- `search_lang` (string, optional): Search language (default: "en")
+- `count` (number, optional): Number of results (1-20, default: 10)
+
+**Returns:** Structured context sections (title, URL, snippets) ready to paste into an LLM prompt.
+
+**Requires:** `BRAVE_SEARCH_API_KEY` (falls back to `BRAVE_API_KEY`)
+
+### AI Answers (`brave_answers`)
+Provides AI-generated answers backed by real-time web search using Brave's OpenAI-compatible chat completions API.
+
+**Parameters:**
+- `query` (string, required): The question or prompt to answer (max 2000 chars)
+- `country` (string, optional): 2-letter country code for localised search context (default: "us")
+- `language` (string, optional): Language code for the response (default: "en")
+- `enable_research` (boolean, optional): Multi-search research mode — thorough but slower and higher cost (default: false)
+- `enable_citations` (boolean, optional): Include inline source citations in the answer. Streaming is handled internally — the MCP tool returns a complete response (default: false)
+- `enable_entities` (boolean, optional): Include structured entity data in the answer. Also uses internal streaming (default: false)
+
+**Note on streaming:** `enable_citations` and `enable_entities` require the Brave API to use `stream: true`.
+This fork handles that transparently: the server consumes the SSE stream and assembles a complete response
+before returning it to the MCP client — no MCP-level streaming required.
+
+**Requires:** `BRAVE_ANSWERS_API_KEY`
+
 ## Configuration
 
 ### Getting an API Key
@@ -120,7 +180,7 @@ The server supports the following environment variables:
 | `BRAVE_SEARCH_API_KEY` | Search plan | web, news, images, videos, local POIs, llm-context |
 | `BRAVE_AI_API_KEY` | Free AI plan | summarizer (free tier) |
 | `BRAVE_PRO_AI_API_KEY` | Pro AI plan | summarizer (deprecated plan, still functional) |
-| `BRAVE_ANSWERS_API_KEY` | Answers plan | summarizer / chat completions |
+| `BRAVE_ANSWERS_API_KEY` | Answers plan | brave_answers (AI chat completions) |
 | `BRAVE_AUTOSUGGEST_API_KEY` | Autosuggest plan | suggest |
 | `BRAVE_SPELLCHECK_API_KEY` | Spellcheck plan | spellcheck |
 
@@ -283,7 +343,7 @@ npm run build
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/brave/brave-search-mcp-server.git
+git clone https://github.com/tobiashochguertel/brave-search-mcp-server.git
 cd brave-search-mcp-server
 ```
 
@@ -343,8 +403,16 @@ STDIO is the default mode. For HTTP mode testing, add `--transport http` to the 
 - `npm run format:check`: Check code formatting
 - `npm run prepare`: Format and build (runs automatically on npm install)
 
+- `npm run test`: Run unit tests (excludes e2e)
+- `npm run test:e2e`: Run all e2e tests (HTTP + stdio, requires API keys)
+- `npm run test:e2e:http`: Run HTTP transport e2e tests only
+- `npm run test:e2e:stdio`: Run stdio transport e2e tests only
+- `npm run test:all`: Run unit tests + e2e tests
+- `npm run test:coverage`: Run unit tests with coverage report
+- `npm run test:watch`: Run unit tests in watch mode
+
 - `npm run inspector`: Launch an instance of MCP Inspector
-- `npm run inspector:stdio`: Launch a instance of MCP Inspector, configured for STDIO
+- `npm run inspector:http`: Launch a instance of MCP Inspector, configured for HTTP
 - `npm run smithery:build`: Build the project for smithery.ai
 - `npm run smithery:dev`: Launch the development environment for smithery.ai
 
@@ -361,17 +429,38 @@ docker-compose up --build
 Run the test suite:
 
 ```bash
-task test           # run all tests once
+task test           # run unit tests once
 task test:watch     # watch mode
 task test:coverage  # with coverage report
+task test:e2e       # e2e tests (HTTP + stdio, requires API keys in env)
+task test:e2e:http  # e2e HTTP transport only
+task test:e2e:stdio # e2e stdio transport only (builds first)
+task test:all       # unit + e2e together
 ```
 
 Or directly via npm:
 
 ```bash
 npm test
+npm run test:e2e
 npm run test:coverage
 ```
+
+### E2e Tests
+
+The e2e tests make real API calls. Set the appropriate environment variables before running:
+
+```bash
+export BRAVE_API_KEY=...
+export BRAVE_SEARCH_API_KEY=...
+export BRAVE_AI_API_KEY=...
+export BRAVE_ANSWERS_API_KEY=...
+export BRAVE_AUTOSUGGEST_API_KEY=...
+export BRAVE_SPELLCHECK_API_KEY=...
+npm run test:e2e
+```
+
+Tests without a matching API key are automatically skipped (`it.skipIf`).
 
 ## License
 

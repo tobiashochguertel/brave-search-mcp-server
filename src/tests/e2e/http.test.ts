@@ -33,8 +33,7 @@ import { setOptions } from '../../config.js';
 // ---------------------------------------------------------------------------
 // Key availability — drives test.skipIf() gates
 // ---------------------------------------------------------------------------
-const searchKey =
-  process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || '';
+const searchKey = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || '';
 const summarizerKey =
   process.env.BRAVE_PRO_AI_API_KEY ||
   process.env.BRAVE_AI_API_KEY ||
