@@ -39,6 +39,12 @@ export const configSchema = z.object({
     .default(false)
     .describe('Whether the server should be stateless')
     .optional(),
+  braveApiBaseUrl: z
+    .string()
+    .url()
+    .default(process.env.BRAVE_API_BASE_URL ?? 'https://api.search.brave.com')
+    .describe('Base URL for the Brave Search API (override to use a compatible server)')
+    .optional(),
 });
 
 export type SmitheryConfig = z.infer<typeof configSchema>;
@@ -48,6 +54,7 @@ type Configuration = {
   port: number;
   host: string;
   braveApiKey: string;
+  braveApiBaseUrl: string;
   loggingLevel: LoggingLevel;
   enabledTools: string[];
   disabledTools: string[];
@@ -59,6 +66,7 @@ const state: Configuration & { ready: boolean } = {
   port: 8080,
   host: '0.0.0.0',
   braveApiKey: process.env.BRAVE_API_KEY ?? '',
+  braveApiBaseUrl: process.env.BRAVE_API_BASE_URL ?? 'https://api.search.brave.com',
   loggingLevel: 'info',
   ready: false,
   enabledTools: [],
@@ -105,6 +113,11 @@ export function getOptions(): Configuration | false {
       '--stateless <boolean>',
       'whether the server should be stateless',
       process.env.BRAVE_MCP_STATELESS === 'true' ? true : false
+    )
+    .option(
+      '--brave-api-base-url <string>',
+      'Base URL for the Brave Search API',
+      process.env.BRAVE_API_BASE_URL ?? 'https://api.search.brave.com'
     )
     .allowUnknownOption()
     .parse(process.argv);
@@ -171,6 +184,7 @@ export function getOptions(): Configuration | false {
 
   // Update state
   state.braveApiKey = options.braveApiKey;
+  state.braveApiBaseUrl = options.braveApiBaseUrl;
   state.transport = options.transport;
   state.port = options.port;
   state.host = options.host;
@@ -185,6 +199,10 @@ export function getOptions(): Configuration | false {
 
 export function setOptions(options: SmitheryConfig) {
   return Object.assign(state, options);
+}
+
+export function getBraveApiBaseUrl(): string {
+  return state.braveApiBaseUrl;
 }
 
 export default state;

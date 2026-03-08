@@ -10,6 +10,9 @@ const typeToPathMap: Record<keyof Endpoints, string> = {
   videos: '/res/v1/videos/search',
   web: '/res/v1/web/search',
   summarizer: '/res/v1/summarizer/search',
+  suggest: '/res/v1/suggest/search',
+  spellcheck: '/res/v1/spellcheck/search',
+  llmContext: '/llm/context',
 };
 
 const getDefaultRequestHeaders = (): Record<string, string> => {
@@ -39,7 +42,7 @@ async function issueRequest<T extends keyof Endpoints>(
   // checkRateLimit();
 
   // Determine URL, and setup parameters
-  const url = new URL(`https://api.search.brave.com${typeToPathMap[endpoint]}`);
+  const url = new URL(`${config.braveApiBaseUrl}${typeToPathMap[endpoint]}`);
   const queryParams = new URLSearchParams();
 
   // TODO (Sampson): Move param-construction/validation to modules
