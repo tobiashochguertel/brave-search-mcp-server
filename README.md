@@ -112,7 +112,22 @@ Generates AI-powered summaries from web search results using Brave's summarizati
 
 The server supports the following environment variables:
 
-- `BRAVE_API_KEY`: Your Brave Search API key (required)
+**API Keys** — Brave Search uses separate subscription plans, each with its own key:
+
+| Variable | Plan | Endpoints covered |
+|---|---|---|
+| `BRAVE_API_KEY` | Default/fallback (Free Search) | All endpoints (fallback when no specific key is set) |
+| `BRAVE_SEARCH_API_KEY` | Search plan | web, news, images, videos, local POIs, llm-context |
+| `BRAVE_AI_API_KEY` | Free AI plan | summarizer (free tier) |
+| `BRAVE_PRO_AI_API_KEY` | Pro AI plan | summarizer (deprecated plan, still functional) |
+| `BRAVE_ANSWERS_API_KEY` | Answers plan | summarizer / chat completions |
+| `BRAVE_AUTOSUGGEST_API_KEY` | Autosuggest plan | suggest |
+| `BRAVE_SPELLCHECK_API_KEY` | Spellcheck plan | spellcheck |
+
+At minimum, set `BRAVE_API_KEY`. If you have subscription-specific keys, set those too — they take priority over the fallback key for their respective endpoints. Get API keys at [api-dashboard.search.brave.com](https://api-dashboard.search.brave.com/app/keys).
+
+**Other settings:**
+
 - `BRAVE_API_BASE_URL`: Override the Brave Search API base URL (default: `https://api.search.brave.com`). Point to a local caching proxy to reduce API costs.
 - `BRAVE_MCP_TRANSPORT`: Transport mode ("http" or "stdio", default: "stdio")
 - `BRAVE_MCP_PORT`: HTTP server port (default: 8000)

@@ -1,5 +1,5 @@
 import type { Endpoints } from './types.js';
-import config from '../config.js';
+import config, { getApiKeyForEndpoint } from '../config.js';
 import { stringify } from '../utils.js';
 
 const typeToPathMap: Record<keyof Endpoints, string> = {
@@ -12,14 +12,14 @@ const typeToPathMap: Record<keyof Endpoints, string> = {
   summarizer: '/res/v1/summarizer/search',
   suggest: '/res/v1/suggest/search',
   spellcheck: '/res/v1/spellcheck/search',
-  llmContext: '/llm/context',
+  llmContext: '/res/v1/llm/context',
 };
 
-const getDefaultRequestHeaders = (): Record<string, string> => {
+const getRequestHeaders = (endpoint: keyof Endpoints): Record<string, string> => {
   return {
     Accept: 'application/json',
     'Accept-Encoding': 'gzip',
-    'X-Subscription-Token': config.braveApiKey,
+    'X-Subscription-Token': getApiKeyForEndpoint(endpoint),
   };
 };
 
@@ -93,7 +93,7 @@ async function issueRequest<T extends keyof Endpoints>(
 
   // Issue Request
   const urlWithParams = url.toString() + '?' + queryParams.toString();
-  const headers = { ...getDefaultRequestHeaders(), ...requestHeaders } as Headers;
+  const headers = { ...getRequestHeaders(endpoint), ...requestHeaders } as Headers;
   const response = await fetch(urlWithParams, { headers });
 
   // Handle Error
