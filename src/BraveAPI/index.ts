@@ -13,7 +13,11 @@ const typeToPathMap: Record<keyof Endpoints, string> = {
   suggest: '/res/v1/suggest/search',
   spellcheck: '/res/v1/spellcheck/search',
   llmContext: '/res/v1/llm/context',
+  answers: '/res/v1/chat/completions',
 };
+
+/** Endpoints that use POST with a JSON body instead of GET with query params. */
+const postEndpoints = new Set<keyof Endpoints>(['answers']);
 
 const getRequestHeaders = (endpoint: keyof Endpoints): Record<string, string> => {
   return {
@@ -43,6 +47,34 @@ async function issueRequest<T extends keyof Endpoints>(
 
   // Determine URL, and setup parameters
   const url = new URL(`${config.braveApiBaseUrl}${typeToPathMap[endpoint]}`);
+
+  // POST endpoints (e.g. Answers/chat completions) send params as JSON body.
+  if (postEndpoints.has(endpoint)) {
+    const headers = {
+      ...getRequestHeaders(endpoint),
+      'Content-Type': 'application/json',
+      ...requestHeaders,
+    } as Headers;
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(parameters),
+    });
+
+    if (!response.ok) {
+      let errorMessage = `${response.status} ${response.statusText}`;
+      try {
+        const responseBody = await response.json();
+        errorMessage += `\n${stringify(responseBody, true)}`;
+      } catch {
+        errorMessage += `\n${await response.text()}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return (await response.json()) as Endpoints[T]['response'];
+  }
+
   const queryParams = new URLSearchParams();
 
   // TODO (Sampson): Move param-construction/validation to modules

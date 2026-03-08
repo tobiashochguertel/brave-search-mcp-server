@@ -43,11 +43,13 @@ const serverBuilt = existsSync(SERVER_PATH);
 const searchKey = process.env.BRAVE_SEARCH_API_KEY || process.env.BRAVE_API_KEY || '';
 const autosuggestKey = process.env.BRAVE_AUTOSUGGEST_API_KEY || '';
 const spellcheckKey = process.env.BRAVE_SPELLCHECK_API_KEY || '';
+const answersKey = process.env.BRAVE_ANSWERS_API_KEY || '';
 
 const hasServerBinary = serverBuilt;
 const hasSearchKey = !!searchKey;
 const hasAutosuggestKey = !!autosuggestKey;
 const hasSpellcheckKey = !!spellcheckKey;
+const hasAnswersKey = !!answersKey;
 
 const E2E_TIMEOUT = 45_000;
 
@@ -119,14 +121,14 @@ describe('stdio Transport E2E', () => {
 
   // ---- Tool listing ----
   it.skipIf(!hasServerBinary || !hasSearchKey)(
-    'lists all 9 tools via stdio transport',
+    'lists all 10 tools via stdio transport',
     async () => {
       const { client, close } = await createClient();
       try {
         const { tools } = await client.listTools();
         const names = tools.map((t) => t.name);
 
-        expect(names).toHaveLength(9);
+        expect(names).toHaveLength(10);
         expect(names).toContain('brave_web_search');
         expect(names).toContain('brave_news_search');
         expect(names).toContain('brave_image_search');
@@ -136,6 +138,7 @@ describe('stdio Transport E2E', () => {
         expect(names).toContain('brave_autosuggest');
         expect(names).toContain('brave_spellcheck');
         expect(names).toContain('brave_llm_context');
+        expect(names).toContain('brave_answers');
       } finally {
         await close();
       }
@@ -295,6 +298,27 @@ describe('stdio Transport E2E', () => {
         expect(result.isError).toBeFalsy();
         const text = getTextContent(result);
         expect(text.toLowerCase()).toContain('artificial');
+      } finally {
+        await close();
+      }
+    },
+    E2E_TIMEOUT
+  );
+
+  // ---- Answers ----
+  it.skipIf(!hasServerBinary || !hasAnswersKey)(
+    'brave_answers returns an AI-generated answer via stdio',
+    async () => {
+      const { client, close } = await createClient();
+      try {
+        const result = await client.callTool({
+          name: 'brave_answers',
+          arguments: { query: 'What is the capital of Germany?', country: 'de' },
+        });
+        expect(result).toBeDefined();
+        expect(result.isError).toBeFalsy();
+        const text = getTextContent(result);
+        expect(text.toLowerCase()).toMatch(/berlin/i);
       } finally {
         await close();
       }

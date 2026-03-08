@@ -42,11 +42,13 @@ const summarizerKey =
   '';
 const autosuggestKey = process.env.BRAVE_AUTOSUGGEST_API_KEY || '';
 const spellcheckKey = process.env.BRAVE_SPELLCHECK_API_KEY || '';
+const answersKey = process.env.BRAVE_ANSWERS_API_KEY || '';
 
 const hasSearchKey = !!searchKey;
 const hasSummarizerKey = !!summarizerKey;
 const hasAutosuggestKey = !!autosuggestKey;
 const hasSpellcheckKey = !!spellcheckKey;
+const hasAnswersKey = !!answersKey;
 
 const E2E_TIMEOUT = 45_000; // ms — real API calls can be slow
 
@@ -123,11 +125,11 @@ describe('HTTP Transport E2E', () => {
       expect(body.message).toBe('pong');
     });
 
-    it('lists all 9 registered tools', async () => {
+    it('lists all 10 registered tools', async () => {
       const { tools } = await client.listTools();
       const names = tools.map((t) => t.name);
 
-      expect(names).toHaveLength(9);
+      expect(names).toHaveLength(10);
       expect(names).toContain('brave_web_search');
       expect(names).toContain('brave_news_search');
       expect(names).toContain('brave_image_search');
@@ -137,6 +139,7 @@ describe('HTTP Transport E2E', () => {
       expect(names).toContain('brave_autosuggest');
       expect(names).toContain('brave_spellcheck');
       expect(names).toContain('brave_llm_context');
+      expect(names).toContain('brave_answers');
     });
 
     it('each tool has a description and inputSchema', async () => {
@@ -301,6 +304,54 @@ describe('HTTP Transport E2E', () => {
         // No error even when nothing needs correction
         expect(result).toBeDefined();
         expect(result.isError).toBeFalsy();
+      },
+      E2E_TIMEOUT
+    );
+  });
+
+  // ---- Answers endpoint (BRAVE_ANSWERS_API_KEY) ----
+  describe('Answers endpoint', () => {
+    it.skipIf(!hasAnswersKey)(
+      'brave_answers — returns an AI-generated answer for a factual question',
+      async () => {
+        const result = await client.callTool({
+          name: 'brave_answers',
+          arguments: { query: 'What is the capital of Germany?', country: 'de' },
+        });
+        assertToolSuccess(result);
+        const text = getTextContent(result);
+        expect(text.toLowerCase()).toMatch(/berlin/i);
+      },
+      E2E_TIMEOUT
+    );
+
+    it.skipIf(!hasAnswersKey)(
+      'brave_answers — works with language parameter',
+      async () => {
+        const result = await client.callTool({
+          name: 'brave_answers',
+          arguments: {
+            query: 'What is the capital of Germany?',
+            country: 'de',
+            language: 'en',
+          },
+        });
+        assertToolSuccess(result);
+        const text = getTextContent(result);
+        expect(text.length).toBeGreaterThan(50);
+      },
+      E2E_TIMEOUT
+    );
+
+    it.skipIf(!hasAnswersKey)(
+      'brave_answers — uses BRAVE_ANSWERS_API_KEY (no 401/403)',
+      async () => {
+        const result = await client.callTool({
+          name: 'brave_answers',
+          arguments: { query: 'Hello world' },
+        });
+        const text = getTextContent(result);
+        expect(text).not.toMatch(/401|403|Unauthorized|Forbidden/i);
       },
       E2E_TIMEOUT
     );

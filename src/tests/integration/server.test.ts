@@ -38,9 +38,9 @@ describe('MCP Server integration', () => {
     expect(toolNames).toContain('brave_llm_context');
   });
 
-  it('lists exactly 9 tools', async () => {
+  it('lists exactly 10 tools', async () => {
     const { tools: listedTools } = await client.listTools();
-    expect(listedTools).toHaveLength(9);
+    expect(listedTools).toHaveLength(10);
   });
 
   it('web search tool has correct description', async () => {

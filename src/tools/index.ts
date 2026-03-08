@@ -7,6 +7,7 @@ import SummarizerTool from './summarizer/index.js';
 import SuggestTool from './suggest/index.js';
 import SpellcheckTool from './spellcheck/index.js';
 import LLMContextTool from './llm-context/index.js';
+import AnswersTool from './answers/index.js';
 
 export default {
   WebSearchTool,
@@ -18,4 +19,5 @@ export default {
   SuggestTool,
   SpellcheckTool,
   LLMContextTool,
+  AnswersTool,
 };

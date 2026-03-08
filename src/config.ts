@@ -266,9 +266,9 @@ export function getBraveApiBaseUrl(): string {
  *
  * Brave Search API uses separate subscription plans, each requiring its own key:
  * - Search plan      (BRAVE_SEARCH_API_KEY): web, news, images, videos, local, llm-context
+ * - Answers plan     (BRAVE_ANSWERS_API_KEY): chat completions (brave_answers tool)
  * - Pro AI plan      (BRAVE_PRO_AI_API_KEY): summarizer (deprecated plan)
  * - Free AI plan     (BRAVE_AI_API_KEY):     summarizer (free tier)
- * - Answers plan     (BRAVE_ANSWERS_API_KEY): summarizer / chat completions
  * - Autosuggest plan (BRAVE_AUTOSUGGEST_API_KEY): suggest
  * - Spellcheck plan  (BRAVE_SPELLCHECK_API_KEY): spellcheck
  *
@@ -284,6 +284,9 @@ export function getApiKeyForEndpoint(endpoint: keyof import('./BraveAPI/types.js
     case 'localDescriptions':
     case 'llmContext':
       return state.braveSearchApiKey || state.braveApiKey;
+    case 'answers':
+      // Answers plan is primary; fallback to proAi → freeAi → default
+      return state.braveAnswersApiKey || state.braveProAiApiKey || state.braveAiApiKey || state.braveApiKey;
     case 'summarizer':
       // Pro AI key takes priority; fallback chain: proAi → answers → freeAi → default
       return state.braveProAiApiKey || state.braveAnswersApiKey || state.braveAiApiKey || state.braveApiKey;

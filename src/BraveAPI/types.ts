@@ -7,6 +7,7 @@ import type { SummarizerQueryParams } from '../tools/summarizer/params.js';
 import type { SuggestParams } from '../tools/suggest/params.js';
 import type { SpellcheckParams } from '../tools/spellcheck/params.js';
 import type { LLMContextParams } from '../tools/llm-context/params.js';
+import type { AnswersRequestBody, AnswersApiResponse } from '../tools/answers/types.js';
 import type { WebSearchApiResponse } from '../tools/web/types.js';
 import type { SummarizerSearchApiResponse } from '../tools/summarizer/types.js';
 import type { ImageSearchApiResponse } from '../tools/images/types.js';
@@ -88,6 +89,11 @@ export type Endpoints = {
   llmContext: {
     params: LLMContextParams;
     response: LLMContextApiResponse;
+    requestHeaders: Headers;
+  };
+  answers: {
+    params: AnswersRequestBody;
+    response: AnswersApiResponse;
     requestHeaders: Headers;
   };
 };
