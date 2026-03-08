@@ -20,10 +20,17 @@ export const params = z.object({
   enable_research: z
     .boolean()
     .default(false)
-    .describe(
-      'Enable multi-search research mode for thorough answers (slower, higher cost). ' +
-      'Note: enable_citations and enable_entities are not supported in non-streaming mode.'
-    )
+    .describe('Enable multi-search research mode for thorough answers (slower, higher cost).')
+    .optional(),
+  enable_citations: z
+    .boolean()
+    .default(false)
+    .describe('Include inline citations from web sources in the answer. Streaming is handled internally.')
+    .optional(),
+  enable_entities: z
+    .boolean()
+    .default(false)
+    .describe('Include structured entity data in the answer. Streaming is handled internally.')
     .optional(),
 });
 

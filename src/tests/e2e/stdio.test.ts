@@ -326,6 +326,26 @@ describe('stdio Transport E2E', () => {
     E2E_TIMEOUT
   );
 
+  it.skipIf(!hasServerBinary || !hasAnswersKey)(
+    'brave_answers with enable_citations assembles streaming response via stdio',
+    async () => {
+      const { client, close } = await createClient();
+      try {
+        const result = await client.callTool({
+          name: 'brave_answers',
+          arguments: { query: 'What is the boiling point of water?', enable_citations: true },
+        });
+        expect(result).toBeDefined();
+        expect(result.isError).toBeFalsy();
+        const text = getTextContent(result);
+        expect(text.length).toBeGreaterThan(10);
+      } finally {
+        await close();
+      }
+    },
+    E2E_TIMEOUT
+  );
+
   // ---- Per-endpoint API key routing ----
   it.skipIf(!hasServerBinary || !hasSearchKey)(
     'server uses correct API key per endpoint (no 401/403 in search response)',

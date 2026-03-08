@@ -355,6 +355,34 @@ describe('HTTP Transport E2E', () => {
       },
       E2E_TIMEOUT
     );
+
+    it.skipIf(!hasAnswersKey)(
+      'brave_answers — enable_citations returns answer with streaming assembled transparently',
+      async () => {
+        const result = await client.callTool({
+          name: 'brave_answers',
+          arguments: { query: 'What is the speed of light?', enable_citations: true },
+        });
+        assertToolSuccess(result);
+        const text = getTextContent(result);
+        expect(text.length).toBeGreaterThan(10);
+      },
+      E2E_TIMEOUT
+    );
+
+    it.skipIf(!hasAnswersKey)(
+      'brave_answers — enable_entities returns answer with streaming assembled transparently',
+      async () => {
+        const result = await client.callTool({
+          name: 'brave_answers',
+          arguments: { query: 'Tell me about Albert Einstein', enable_entities: true },
+        });
+        assertToolSuccess(result);
+        const text = getTextContent(result);
+        expect(text.length).toBeGreaterThan(10);
+      },
+      E2E_TIMEOUT
+    );
   });
 
   // ---- API key routing verification ----

@@ -19,20 +19,29 @@ export const description = `
         - Research queries requiring up-to-date information
         - Getting AI-synthesized answers backed by live web search
 
+    Parameters:
+        - enable_citations: Add inline source citations to the answer
+        - enable_entities: Include structured entity data (people, places, things)
+        - enable_research: Multi-search research mode for thorough answers (slower, higher cost)
+
     Requires a Brave Answers plan API key (BRAVE_ANSWERS_API_KEY).
-    Uses enable_research=true for thorough multi-search research (slower, higher cost).
 `;
 
 export const execute = async (inputParams: AnswersParams) => {
-  const { query, country, language, enable_research } = inputParams;
+  const { query, country, language, enable_research, enable_citations, enable_entities } = inputParams;
+
+  // Citations and entities require Brave's streaming mode; BraveAPI assembles the SSE chunks transparently.
+  const needsStreaming = enable_citations === true || enable_entities === true;
 
   const response = await API.issueRequest<'answers'>('answers', {
     messages: [{ role: 'user', content: query }],
     model: 'brave',
-    stream: false,
+    stream: needsStreaming ? true : false,
     ...(country !== undefined && { country }),
     ...(language !== undefined && { language }),
     ...(enable_research !== undefined && { enable_research }),
+    ...(enable_citations !== undefined && { enable_citations }),
+    ...(enable_entities !== undefined && { enable_entities }),
   });
 
   const content: { type: 'text'; text: string }[] = [];

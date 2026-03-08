@@ -27,12 +27,13 @@ export interface AnswersUsage {
 export interface AnswersRequestBody {
   messages: { role: 'user'; content: string }[];
   model: 'brave';
-  stream: false;
+  /** Use true when enable_citations or enable_entities are set; handled transparently by the API client. */
+  stream?: boolean;
   country?: string;
   language?: string;
-  /** Requires stream: true — not supported in this non-streaming implementation. */
+  /** Inline citations from web sources. Internally uses Brave SSE streaming, assembled before returning. */
   enable_citations?: boolean;
-  /** Requires stream: true — not supported in this non-streaming implementation. */
+  /** Structured entity data in the answer. Internally uses Brave SSE streaming, assembled before returning. */
   enable_entities?: boolean;
   enable_research?: boolean;
 }

@@ -1,6 +1,7 @@
 import type { Endpoints } from './types.js';
 import config, { getApiKeyForEndpoint } from '../config.js';
 import { stringify } from '../utils.js';
+import type { AnswersApiResponse } from '../tools/answers/types.js';
 
 const typeToPathMap: Record<keyof Endpoints, string> = {
   images: '/res/v1/images/search',
@@ -36,6 +37,50 @@ const isValidGoggleURL = (url: string) => {
   }
 };
 
+/**
+ * Reads an OpenAI-compatible SSE stream from Brave Answers API and assembles
+ * a non-streaming AnswersApiResponse by concatenating all delta.content chunks.
+ * This allows enable_citations and enable_entities (which require stream:true)
+ * to be used transparently without exposing SSE to the MCP tool or client.
+ */
+async function assembleStreamingResponse(response: Response): Promise<AnswersApiResponse> {
+  const text = await response.text();
+  let content = '';
+  let id = '';
+  let created = 0;
+  let model = 'brave';
+
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('data: ')) continue;
+    const data = trimmed.slice(6);
+    if (data === '[DONE]') break;
+    try {
+      const chunk = JSON.parse(data) as {
+        id?: string;
+        created?: number;
+        model?: string;
+        choices?: Array<{ delta?: { content?: string } }>;
+      };
+      if (chunk.id && !id) id = chunk.id;
+      if (chunk.created && !created) created = chunk.created;
+      if (chunk.model && model === 'brave') model = chunk.model;
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (delta) content += delta;
+    } catch {
+      // skip malformed SSE lines
+    }
+  }
+
+  return {
+    id,
+    object: 'chat.completion',
+    created,
+    model,
+    choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
+  };
+}
+
 async function issueRequest<T extends keyof Endpoints>(
   endpoint: T,
   parameters: Endpoints[T]['params'],
@@ -50,9 +95,11 @@ async function issueRequest<T extends keyof Endpoints>(
 
   // POST endpoints (e.g. Answers/chat completions) send params as JSON body.
   if (postEndpoints.has(endpoint)) {
+    const isStreaming = (parameters as { stream?: boolean }).stream === true;
     const headers = {
       ...getRequestHeaders(endpoint),
       'Content-Type': 'application/json',
+      ...(isStreaming && { Accept: 'text/event-stream' }),
       ...requestHeaders,
     } as Headers;
     const response = await fetch(url.toString(), {
@@ -70,6 +117,10 @@ async function issueRequest<T extends keyof Endpoints>(
         errorMessage += `\n${await response.text()}`;
       }
       throw new Error(errorMessage);
+    }
+
+    if (isStreaming) {
+      return (await assembleStreamingResponse(response)) as Endpoints[T]['response'];
     }
 
     return (await response.json()) as Endpoints[T]['response'];
