@@ -1,0 +1,132 @@
+version: "3"
+
+vars:
+  NODE_VERSION:
+    sh: node --version 2>/dev/null || echo "not installed"
+
+tasks:
+  default:
+    desc: Show available tasks
+    silent: true
+    cmds:
+      - ~/.taskfiles/taskscripts/task-help/task_help.py
+
+  # ---------------------------------------------------------------------------
+  # Setup
+  # ---------------------------------------------------------------------------
+
+  setup:
+    desc: Install all dependencies (including dev)
+    cmds:
+      - npm install
+
+  setup:ci:
+    desc: Install dependencies (clean install, for CI)
+    cmds:
+      - npm ci
+
+  # ---------------------------------------------------------------------------
+  # Build
+  # ---------------------------------------------------------------------------
+
+  build:
+    desc: Compile TypeScript to dist/
+    cmds:
+      - npm run build
+
+  build:watch:
+    desc: Watch and recompile on changes
+    cmds:
+      - npm run watch
+
+  # ---------------------------------------------------------------------------
+  # Test
+  # ---------------------------------------------------------------------------
+
+  test:
+    desc: Run all tests once
+    cmds:
+      - npm run test
+
+  test:watch:
+    desc: Run tests in watch mode
+    cmds:
+      - npm run test:watch
+
+  test:coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - npm run test:coverage
+
+  # ---------------------------------------------------------------------------
+  # Lint & Format
+  # ---------------------------------------------------------------------------
+
+  lint:
+    desc: Check formatting with Prettier
+    cmds:
+      - npm run format:check
+
+  lint:fix:
+    desc: Auto-fix formatting with Prettier
+    cmds:
+      - npm run format
+
+  # ---------------------------------------------------------------------------
+  # Dev
+  # ---------------------------------------------------------------------------
+
+  dev:stdio:
+    desc: Run MCP server in stdio mode (requires BRAVE_API_KEY)
+    cmds:
+      - node dist/index.js --transport stdio
+
+  dev:http:
+    desc: Run MCP server in HTTP mode on port 8080 (requires BRAVE_API_KEY)
+    cmds:
+      - node dist/index.js --transport http --port 8080
+
+  inspect:
+    desc: Open MCP Inspector (stdio transport)
+    cmds:
+      - npm run inspector
+
+  inspect:http:
+    desc: Open MCP Inspector (HTTP transport)
+    cmds:
+      - npm run inspector:http
+
+  # ---------------------------------------------------------------------------
+  # Docker
+  # ---------------------------------------------------------------------------
+
+  docker:build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t brave-search-mcp-server .
+
+  docker:up:
+    desc: Start MCP server via docker-compose (HTTP mode)
+    cmds:
+      - docker-compose up --build
+
+  docker:down:
+    desc: Stop docker-compose services
+    cmds:
+      - docker-compose down
+
+  docker:logs:
+    desc: Tail docker-compose logs
+    cmds:
+      - docker-compose logs -f
+
+  # ---------------------------------------------------------------------------
+  # Release
+  # ---------------------------------------------------------------------------
+
+  release:check:
+    desc: Validate build, tests and formatting before release
+    cmds:
+      - task: lint
+      - task: build
+      - task: test

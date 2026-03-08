@@ -23,6 +23,13 @@
           "format": "string",
           "isRequired": true,
           "isSecret": true
+        },
+        {
+          "name": "BRAVE_API_BASE_URL",
+          "description": "Override the Brave Search API base URL (e.g. to use a local caching proxy). Defaults to https://api.search.brave.com",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false
         }
       ]
     }

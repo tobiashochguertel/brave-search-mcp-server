@@ -113,6 +113,7 @@ Generates AI-powered summaries from web search results using Brave's summarizati
 The server supports the following environment variables:
 
 - `BRAVE_API_KEY`: Your Brave Search API key (required)
+- `BRAVE_API_BASE_URL`: Override the Brave Search API base URL (default: `https://api.search.brave.com`). Point to a local caching proxy to reduce API costs.
 - `BRAVE_MCP_TRANSPORT`: Transport mode ("http" or "stdio", default: "stdio")
 - `BRAVE_MCP_PORT`: HTTP server port (default: 8000)
 - `BRAVE_MCP_HOST`: HTTP server host (default: "0.0.0.0")
@@ -338,6 +339,23 @@ For local development with Docker:
 
 ```bash
 docker-compose up --build
+```
+
+## Testing
+
+Run the test suite:
+
+```bash
+task test           # run all tests once
+task test:watch     # watch mode
+task test:coverage  # with coverage report
+```
+
+Or directly via npm:
+
+```bash
+npm test
+npm run test:coverage
 ```
 
 ## License
