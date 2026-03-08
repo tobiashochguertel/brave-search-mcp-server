@@ -35,9 +35,14 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "inspector": "npx @modelcontextprotocol/inspector",
     "inspector:http": "npx @modelcontextprotocol/inspector --transport http",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test": "vitest run --exclude 'src/tests/e2e/**'",
+    "test:watch": "vitest --exclude 'src/tests/e2e/**'",
+    "test:coverage": "vitest run --exclude 'src/tests/e2e/**' --coverage",
+    "test:unit": "vitest run --exclude 'src/tests/e2e/**'",
+    "test:e2e": "vitest run src/tests/e2e",
+    "test:e2e:http": "vitest run src/tests/e2e/http.test.ts",
+    "test:e2e:stdio": "vitest run src/tests/e2e/stdio.test.ts",
+    "test:all": "vitest run",
     "test:ui": "vitest --ui"
   },
   "dependencies": {

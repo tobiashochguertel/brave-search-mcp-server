@@ -26,18 +26,31 @@ export const description = `
 export const execute = async (inputParams: LLMContextParams) => {
   const response = await API.issueRequest<'llmContext'>('llmContext', inputParams);
 
-  const content = [];
+  const content: { type: 'text'; text: string }[] = [];
 
-  content.push({
-    type: 'text' as const,
-    text: response.context,
-  });
+  const items = [
+    ...(response.grounding?.generic ?? []),
+    ...(response.grounding?.map ?? []),
+  ];
 
-  if (response.urls && response.urls.length > 0) {
-    content.push({
-      type: 'text' as const,
-      text: 'Sources:\n' + response.urls.map((u) => `- ${u.title ?? u.url}: ${u.url}`).join('\n'),
-    });
+  if (items.length > 0) {
+    const contextText = items
+      .map((item) => {
+        const snippetText = item.snippets.join('\n\n');
+        return `## ${item.title}\n${item.url}\n\n${snippetText}`;
+      })
+      .join('\n\n---\n\n');
+
+    content.push({ type: 'text' as const, text: contextText });
+  } else {
+    content.push({ type: 'text' as const, text: 'No context results found.' });
+  }
+
+  if (response.sources && Object.keys(response.sources).length > 0) {
+    const sourcesList = Object.entries(response.sources)
+      .map(([url, src]) => `- [${src.title}](${url}) (${src.hostname})`)
+      .join('\n');
+    content.push({ type: 'text' as const, text: `\n**Sources:**\n${sourcesList}` });
   }
 
   return { content };

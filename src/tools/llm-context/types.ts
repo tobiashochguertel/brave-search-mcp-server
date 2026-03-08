@@ -1,17 +1,19 @@
 export interface LLMContextApiResponse {
-  type: 'llm_context';
-  query: LLMContextQuery;
-  context: string;
-  urls: LLMContextUrl[];
+  grounding: {
+    generic: LLMContextGroundingItem[];
+    map?: LLMContextGroundingItem[];
+  };
+  sources: Record<string, LLMContextSource>;
 }
 
-export interface LLMContextQuery {
-  original: string;
-  altered?: string;
-}
-
-export interface LLMContextUrl {
+export interface LLMContextGroundingItem {
   url: string;
-  title?: string;
-  age?: string;
+  title: string;
+  snippets: string[];
+}
+
+export interface LLMContextSource {
+  title: string;
+  hostname: string;
+  age?: string[];
 }

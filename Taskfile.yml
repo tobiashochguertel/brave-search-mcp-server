@@ -44,9 +44,30 @@ tasks:
   # ---------------------------------------------------------------------------
 
   test:
-    desc: Run all tests once
+    desc: Run unit tests (excludes e2e tests requiring API keys)
     cmds:
       - npm run test
+
+  test:all:
+    desc: Run all tests including e2e (requires API keys in env)
+    cmds:
+      - npm run test:all
+
+  test:e2e:
+    desc: Run e2e tests (both HTTP and stdio transports) — requires API keys
+    cmds:
+      - npm run test:e2e
+
+  test:e2e:http:
+    desc: Run e2e tests for HTTP transport only — requires API keys
+    cmds:
+      - npm run test:e2e:http
+
+  test:e2e:stdio:
+    desc: Run e2e tests for stdio transport only — requires built dist + API keys
+    deps: [build]
+    cmds:
+      - npm run test:e2e:stdio
 
   test:watch:
     desc: Run tests in watch mode
