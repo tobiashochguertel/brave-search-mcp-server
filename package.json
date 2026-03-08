@@ -1,21 +1,25 @@
 {
   "name": "@brave/brave-search-mcp-server",
-  "mcpName": "io.github.brave/brave-search-mcp-server",
-  "version": "2.0.75",
-  "description": "Brave Search MCP Server: web results, images, videos, rich results, AI summaries, and more.",
+  "mcpName": "io.github.tobiashochguertel/brave-search-mcp-server",
+  "version": "2.1.0",
+  "description": "Community fork of the official Brave Search MCP Server with full API coverage: web, news, images, videos, local, LLM context, summarizer, autosuggest, spellcheck, and AI answers (with streaming support).",
   "keywords": [
     "api",
     "brave",
     "mcp",
-    "search"
+    "search",
+    "answers",
+    "autosuggest",
+    "spellcheck",
+    "llm-context"
   ],
   "license": "MIT",
   "author": "Brave Software, Inc. (https://brave.com)",
-  "homepage": "https://github.com/brave/brave-search-mcp-server",
-  "bugs": "https://github.com/brave/brave-search-mcp-server/issues",
+  "homepage": "https://github.com/tobiashochguertel/brave-search-mcp-server",
+  "bugs": "https://github.com/tobiashochguertel/brave-search-mcp-server/issues",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brave/brave-search-mcp-server.git"
+    "url": "https://github.com/tobiashochguertel/brave-search-mcp-server.git"
   },
   "type": "module",
   "module": "dist/server.js",
@@ -34,10 +38,19 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "inspector": "npx @modelcontextprotocol/inspector",
-    "inspector:http": "npx @modelcontextprotocol/inspector --transport http"
+    "inspector:http": "npx @modelcontextprotocol/inspector --transport http",
+    "test": "vitest run --exclude 'src/tests/e2e/**'",
+    "test:watch": "vitest --exclude 'src/tests/e2e/**'",
+    "test:coverage": "vitest run --exclude 'src/tests/e2e/**' --coverage",
+    "test:unit": "vitest run --exclude 'src/tests/e2e/**'",
+    "test:e2e": "vitest run src/tests/e2e",
+    "test:e2e:http": "vitest run src/tests/e2e/http.test.ts",
+    "test:e2e:stdio": "vitest run src/tests/e2e/stdio.test.ts",
+    "test:all": "vitest run",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.27.0",
+    "@modelcontextprotocol/sdk": "1.27.1",
     "commander": "14.0.3",
     "dotenv": "17.3.1",
     "express": "5.2.1",
@@ -47,10 +60,22 @@
     "@types/express": "5.0.6",
     "@smithery/cli": "2.2.1",
     "@types/node": "24.10.13",
+    "@vitest/coverage-v8": "^4.0.18",
     "prettier": "3.8.1",
     "shx": "0.4.0",
     "tsx": "4.21.0",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "vitest": {
+    "environment": "node",
+    "include": ["src/**/*.test.ts", "tests/**/*.test.ts"],
+    "coverage": {
+      "provider": "v8",
+      "reporter": ["text", "lcov", "html"],
+      "include": ["src/**/*.ts"],
+      "exclude": ["src/**/*.test.ts"]
+    }
   },
   "overrides": {
     "formdata-node": "6.0.3",

@@ -9,6 +9,13 @@ services:
         delay: 5s
     environment:
       - BRAVE_API_KEY
+      - BRAVE_SEARCH_API_KEY
+      - BRAVE_AI_API_KEY
+      - BRAVE_PRO_AI_API_KEY
+      - BRAVE_ANSWERS_API_KEY
+      - BRAVE_AUTOSUGGEST_API_KEY
+      - BRAVE_SPELLCHECK_API_KEY
+      - BRAVE_API_BASE_URL
       - BRAVE_MCP_TRANSPORT=http
       - BRAVE_MCP_PORT=8080
       - BRAVE_MCP_STATELESS

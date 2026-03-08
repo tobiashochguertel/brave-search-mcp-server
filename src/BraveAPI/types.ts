@@ -4,6 +4,10 @@ import type { QueryParams as VideoQueryParams } from '../tools/videos/params.js'
 import type { QueryParams as NewsQueryParams } from '../tools/news/params.js';
 import type { LocalPoisParams, LocalDescriptionsParams } from '../tools/local/params.js';
 import type { SummarizerQueryParams } from '../tools/summarizer/params.js';
+import type { SuggestParams } from '../tools/suggest/params.js';
+import type { SpellcheckParams } from '../tools/spellcheck/params.js';
+import type { LLMContextParams } from '../tools/llm-context/params.js';
+import type { AnswersRequestBody, AnswersApiResponse } from '../tools/answers/types.js';
 import type { WebSearchApiResponse } from '../tools/web/types.js';
 import type { SummarizerSearchApiResponse } from '../tools/summarizer/types.js';
 import type { ImageSearchApiResponse } from '../tools/images/types.js';
@@ -13,6 +17,9 @@ import type {
   LocalPoiSearchApiResponse,
   LocalDescriptionsSearchApiResponse,
 } from '../tools/local/types.js';
+import type { SuggestApiResponse } from '../tools/suggest/types.js';
+import type { SpellcheckApiResponse } from '../tools/spellcheck/types.js';
+import type { LLMContextApiResponse } from '../tools/llm-context/types.js';
 
 export interface RateLimitErrorResponse {
   type: 'ErrorResponse';
@@ -67,6 +74,26 @@ export type Endpoints = {
   summarizer: {
     params: SummarizerQueryParams;
     response: SummarizerSearchApiResponse;
+    requestHeaders: Headers;
+  };
+  suggest: {
+    params: SuggestParams;
+    response: SuggestApiResponse;
+    requestHeaders: Headers;
+  };
+  spellcheck: {
+    params: SpellcheckParams;
+    response: SpellcheckApiResponse;
+    requestHeaders: Headers;
+  };
+  llmContext: {
+    params: LLMContextParams;
+    response: LLMContextApiResponse;
+    requestHeaders: Headers;
+  };
+  answers: {
+    params: AnswersRequestBody;
+    response: AnswersApiResponse;
     requestHeaders: Headers;
   };
 };

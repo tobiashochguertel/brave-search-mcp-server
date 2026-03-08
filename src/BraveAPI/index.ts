@@ -1,6 +1,7 @@
 import type { Endpoints } from './types.js';
-import config from '../config.js';
+import config, { getApiKeyForEndpoint } from '../config.js';
 import { stringify } from '../utils.js';
+import type { AnswersApiResponse } from '../tools/answers/types.js';
 
 const typeToPathMap: Record<keyof Endpoints, string> = {
   images: '/res/v1/images/search',
@@ -10,13 +11,20 @@ const typeToPathMap: Record<keyof Endpoints, string> = {
   videos: '/res/v1/videos/search',
   web: '/res/v1/web/search',
   summarizer: '/res/v1/summarizer/search',
+  suggest: '/res/v1/suggest/search',
+  spellcheck: '/res/v1/spellcheck/search',
+  llmContext: '/res/v1/llm/context',
+  answers: '/res/v1/chat/completions',
 };
 
-const getDefaultRequestHeaders = (): Record<string, string> => {
+/** Endpoints that use POST with a JSON body instead of GET with query params. */
+const postEndpoints = new Set<keyof Endpoints>(['answers']);
+
+const getRequestHeaders = (endpoint: keyof Endpoints): Record<string, string> => {
   return {
     Accept: 'application/json',
     'Accept-Encoding': 'gzip',
-    'X-Subscription-Token': config.braveApiKey,
+    'X-Subscription-Token': getApiKeyForEndpoint(endpoint),
   };
 };
 
@@ -29,6 +37,50 @@ const isValidGoggleURL = (url: string) => {
   }
 };
 
+/**
+ * Reads an OpenAI-compatible SSE stream from Brave Answers API and assembles
+ * a non-streaming AnswersApiResponse by concatenating all delta.content chunks.
+ * This allows enable_citations and enable_entities (which require stream:true)
+ * to be used transparently without exposing SSE to the MCP tool or client.
+ */
+async function assembleStreamingResponse(response: Response): Promise<AnswersApiResponse> {
+  const text = await response.text();
+  let content = '';
+  let id = '';
+  let created = 0;
+  let model = 'brave';
+
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('data: ')) continue;
+    const data = trimmed.slice(6);
+    if (data === '[DONE]') break;
+    try {
+      const chunk = JSON.parse(data) as {
+        id?: string;
+        created?: number;
+        model?: string;
+        choices?: Array<{ delta?: { content?: string } }>;
+      };
+      if (chunk.id && !id) id = chunk.id;
+      if (chunk.created && !created) created = chunk.created;
+      if (chunk.model && model === 'brave') model = chunk.model;
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (delta) content += delta;
+    } catch {
+      // skip malformed SSE lines
+    }
+  }
+
+  return {
+    id,
+    object: 'chat.completion',
+    created,
+    model,
+    choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
+  };
+}
+
 async function issueRequest<T extends keyof Endpoints>(
   endpoint: T,
   parameters: Endpoints[T]['params'],
@@ -39,7 +91,41 @@ async function issueRequest<T extends keyof Endpoints>(
   // checkRateLimit();
 
   // Determine URL, and setup parameters
-  const url = new URL(`https://api.search.brave.com${typeToPathMap[endpoint]}`);
+  const url = new URL(`${config.braveApiBaseUrl}${typeToPathMap[endpoint]}`);
+
+  // POST endpoints (e.g. Answers/chat completions) send params as JSON body.
+  if (postEndpoints.has(endpoint)) {
+    const isStreaming = (parameters as { stream?: boolean }).stream === true;
+    const headers = {
+      ...getRequestHeaders(endpoint),
+      'Content-Type': 'application/json',
+      ...(isStreaming && { Accept: 'text/event-stream' }),
+      ...requestHeaders,
+    } as Headers;
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(parameters),
+    });
+
+    if (!response.ok) {
+      let errorMessage = `${response.status} ${response.statusText}`;
+      try {
+        const responseBody = await response.json();
+        errorMessage += `\n${stringify(responseBody, true)}`;
+      } catch {
+        errorMessage += `\n${await response.text()}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    if (isStreaming) {
+      return (await assembleStreamingResponse(response)) as Endpoints[T]['response'];
+    }
+
+    return (await response.json()) as Endpoints[T]['response'];
+  }
+
   const queryParams = new URLSearchParams();
 
   // TODO (Sampson): Move param-construction/validation to modules
@@ -90,7 +176,7 @@ async function issueRequest<T extends keyof Endpoints>(
 
   // Issue Request
   const urlWithParams = url.toString() + '?' + queryParams.toString();
-  const headers = { ...getDefaultRequestHeaders(), ...requestHeaders } as Headers;
+  const headers = { ...getRequestHeaders(endpoint), ...requestHeaders } as Headers;
   const response = await fetch(urlWithParams, { headers });
 
   // Handle Error

@@ -10,8 +10,39 @@ dotenv.config({ debug: false, quiet: true });
 export const configSchema = z.object({
   braveApiKey: z
     .string()
-    .describe('Your API key')
+    .describe('Default/fallback API key for the Brave Search API')
     .default(process.env.BRAVE_API_KEY ?? ''),
+  // Per-subscription API keys (each Brave plan has its own key)
+  braveSearchApiKey: z
+    .string()
+    .describe('API key for the Search plan (web, news, images, videos, local, llm-context)')
+    .default(process.env.BRAVE_SEARCH_API_KEY ?? '')
+    .optional(),
+  braveAiApiKey: z
+    .string()
+    .describe('API key for the Free AI plan (summarizer)')
+    .default(process.env.BRAVE_AI_API_KEY ?? '')
+    .optional(),
+  braveProAiApiKey: z
+    .string()
+    .describe('API key for the Pro AI plan (summarizer, deprecated plan)')
+    .default(process.env.BRAVE_PRO_AI_API_KEY ?? '')
+    .optional(),
+  braveAnswersApiKey: z
+    .string()
+    .describe('API key for the Answers plan (chat completions / summarizer)')
+    .default(process.env.BRAVE_ANSWERS_API_KEY ?? '')
+    .optional(),
+  braveAutosuggestApiKey: z
+    .string()
+    .describe('API key for the Autosuggest plan (/suggest/search)')
+    .default(process.env.BRAVE_AUTOSUGGEST_API_KEY ?? '')
+    .optional(),
+  braveSpellcheckApiKey: z
+    .string()
+    .describe('API key for the Spellcheck plan (/spellcheck/search)')
+    .default(process.env.BRAVE_SPELLCHECK_API_KEY ?? '')
+    .optional(),
   enabledTools: z
     .array(z.string())
     .describe('Enforces a tool whitelist (cannot be used with disabledTools)')
@@ -39,6 +70,12 @@ export const configSchema = z.object({
     .default(false)
     .describe('Whether the server should be stateless')
     .optional(),
+  braveApiBaseUrl: z
+    .string()
+    .url()
+    .default(process.env.BRAVE_API_BASE_URL ?? 'https://api.search.brave.com')
+    .describe('Base URL for the Brave Search API (override to use a compatible server)')
+    .optional(),
 });
 
 export type SmitheryConfig = z.infer<typeof configSchema>;
@@ -48,6 +85,14 @@ type Configuration = {
   port: number;
   host: string;
   braveApiKey: string;
+  // Per-subscription keys (each Brave subscription plan has its own key)
+  braveSearchApiKey: string;
+  braveAiApiKey: string;
+  braveProAiApiKey: string;
+  braveAnswersApiKey: string;
+  braveAutosuggestApiKey: string;
+  braveSpellcheckApiKey: string;
+  braveApiBaseUrl: string;
   loggingLevel: LoggingLevel;
   enabledTools: string[];
   disabledTools: string[];
@@ -59,6 +104,13 @@ const state: Configuration & { ready: boolean } = {
   port: 8080,
   host: '0.0.0.0',
   braveApiKey: process.env.BRAVE_API_KEY ?? '',
+  braveSearchApiKey: process.env.BRAVE_SEARCH_API_KEY ?? '',
+  braveAiApiKey: process.env.BRAVE_AI_API_KEY ?? '',
+  braveProAiApiKey: process.env.BRAVE_PRO_AI_API_KEY ?? '',
+  braveAnswersApiKey: process.env.BRAVE_ANSWERS_API_KEY ?? '',
+  braveAutosuggestApiKey: process.env.BRAVE_AUTOSUGGEST_API_KEY ?? '',
+  braveSpellcheckApiKey: process.env.BRAVE_SPELLCHECK_API_KEY ?? '',
+  braveApiBaseUrl: process.env.BRAVE_API_BASE_URL ?? 'https://api.search.brave.com',
   loggingLevel: 'info',
   ready: false,
   enabledTools: [],
@@ -74,7 +126,41 @@ export function isToolPermittedByUser(toolName: string): boolean {
 
 export function getOptions(): Configuration | false {
   const program = new Command()
-    .option('--brave-api-key <string>', 'Brave API key', process.env.BRAVE_API_KEY ?? '')
+    .option(
+      '--brave-api-key <string>',
+      'Default/fallback Brave API key',
+      process.env.BRAVE_API_KEY ?? ''
+    )
+    .option(
+      '--brave-search-api-key <string>',
+      'API key for Search plan (web, news, images, videos, local, llm-context)',
+      process.env.BRAVE_SEARCH_API_KEY ?? ''
+    )
+    .option(
+      '--brave-ai-api-key <string>',
+      'API key for Free AI plan (summarizer)',
+      process.env.BRAVE_AI_API_KEY ?? ''
+    )
+    .option(
+      '--brave-pro-ai-api-key <string>',
+      'API key for Pro AI plan (summarizer, deprecated)',
+      process.env.BRAVE_PRO_AI_API_KEY ?? ''
+    )
+    .option(
+      '--brave-answers-api-key <string>',
+      'API key for Answers plan (chat completions)',
+      process.env.BRAVE_ANSWERS_API_KEY ?? ''
+    )
+    .option(
+      '--brave-autosuggest-api-key <string>',
+      'API key for Autosuggest plan',
+      process.env.BRAVE_AUTOSUGGEST_API_KEY ?? ''
+    )
+    .option(
+      '--brave-spellcheck-api-key <string>',
+      'API key for Spellcheck plan',
+      process.env.BRAVE_SPELLCHECK_API_KEY ?? ''
+    )
     .option('--logging-level <string>', 'Logging level', process.env.BRAVE_MCP_LOG_LEVEL ?? 'info')
     .option(
       '--transport <stdio|http>',
@@ -105,6 +191,11 @@ export function getOptions(): Configuration | false {
       '--stateless <boolean>',
       'whether the server should be stateless',
       process.env.BRAVE_MCP_STATELESS === 'true' ? true : false
+    )
+    .option(
+      '--brave-api-base-url <string>',
+      'Base URL for the Brave Search API',
+      process.env.BRAVE_API_BASE_URL ?? 'https://api.search.brave.com'
     )
     .allowUnknownOption()
     .parse(process.argv);
@@ -145,9 +236,9 @@ export function getOptions(): Configuration | false {
     return false;
   }
 
-  if (!options.braveApiKey) {
+  if (!options.braveApiKey && !options.braveSearchApiKey) {
     console.error(
-      'Error: --brave-api-key is required. You can get one at https://brave.com/search/api/.'
+      'Error: At least one API key is required. Set BRAVE_API_KEY as default, or use subscription-specific keys. Get keys at https://brave.com/search/api/.'
     );
     return false;
   }
@@ -171,6 +262,13 @@ export function getOptions(): Configuration | false {
 
   // Update state
   state.braveApiKey = options.braveApiKey;
+  state.braveSearchApiKey = options.braveSearchApiKey ?? '';
+  state.braveAiApiKey = options.braveAiApiKey ?? '';
+  state.braveProAiApiKey = options.braveProAiApiKey ?? '';
+  state.braveAnswersApiKey = options.braveAnswersApiKey ?? '';
+  state.braveAutosuggestApiKey = options.braveAutosuggestApiKey ?? '';
+  state.braveSpellcheckApiKey = options.braveSpellcheckApiKey ?? '';
+  state.braveApiBaseUrl = options.braveApiBaseUrl;
   state.transport = options.transport;
   state.port = options.port;
   state.host = options.host;
@@ -185,6 +283,60 @@ export function getOptions(): Configuration | false {
 
 export function setOptions(options: SmitheryConfig) {
   return Object.assign(state, options);
+}
+
+export function getBraveApiBaseUrl(): string {
+  return state.braveApiBaseUrl;
+}
+
+/**
+ * Returns the appropriate API key for a given endpoint.
+ *
+ * Brave Search API uses separate subscription plans, each requiring its own key:
+ * - Search plan      (BRAVE_SEARCH_API_KEY): web, news, images, videos, local, llm-context
+ * - Answers plan     (BRAVE_ANSWERS_API_KEY): chat completions (brave_answers tool)
+ * - Pro AI plan      (BRAVE_PRO_AI_API_KEY): summarizer (deprecated plan)
+ * - Free AI plan     (BRAVE_AI_API_KEY):     summarizer (free tier)
+ * - Autosuggest plan (BRAVE_AUTOSUGGEST_API_KEY): suggest
+ * - Spellcheck plan  (BRAVE_SPELLCHECK_API_KEY): spellcheck
+ *
+ * Falls back to BRAVE_API_KEY if a subscription-specific key is not configured.
+ */
+export function getApiKeyForEndpoint(
+  endpoint: keyof import('./BraveAPI/types.js').Endpoints
+): string {
+  switch (endpoint) {
+    case 'web':
+    case 'news':
+    case 'images':
+    case 'videos':
+    case 'localPois':
+    case 'localDescriptions':
+    case 'llmContext':
+      return state.braveSearchApiKey || state.braveApiKey;
+    case 'answers':
+      // Answers plan is primary; fallback to proAi → freeAi → default
+      return (
+        state.braveAnswersApiKey ||
+        state.braveProAiApiKey ||
+        state.braveAiApiKey ||
+        state.braveApiKey
+      );
+    case 'summarizer':
+      // Pro AI key takes priority; fallback chain: proAi → answers → freeAi → default
+      return (
+        state.braveProAiApiKey ||
+        state.braveAnswersApiKey ||
+        state.braveAiApiKey ||
+        state.braveApiKey
+      );
+    case 'suggest':
+      return state.braveAutosuggestApiKey || state.braveApiKey;
+    case 'spellcheck':
+      return state.braveSpellcheckApiKey || state.braveApiKey;
+    default:
+      return state.braveApiKey;
+  }
 }
 
 export default state;

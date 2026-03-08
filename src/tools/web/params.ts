@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const params = z.object({
   query: z
     .string()
+    .min(1, 'Query cannot be empty')
     .max(400)
     .refine((str) => str.split(/\s+/).length <= 50, 'Query cannot exceed 50 words')
     .describe('Search query (max 400 chars, 50 words)'),

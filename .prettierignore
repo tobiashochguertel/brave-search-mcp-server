@@ -21,3 +21,13 @@ Thumbs.db
 # Package files
 package-lock.json
 yarn.lock
+
+# Test coverage
+coverage/
+
+# Taskfile
+Taskfile.yml
+
+# JSON config files (auto-managed)
+server.json
+marketplace-revision-release.json

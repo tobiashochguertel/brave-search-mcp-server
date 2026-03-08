@@ -1,10 +1,10 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.brave/brave-search-mcp-server",
-  "description": "Brave Search MCP Server: web results, images, videos, rich results, AI summaries, and more.",
-  "version": "2.0.75",
+  "name": "io.github.tobiashochguertel/brave-search-mcp-server",
+  "description": "Community fork of the official Brave Search MCP Server with full API coverage: web, news, images, videos, local, LLM context, summarizer, autosuggest, spellcheck, and AI answers (with streaming).",
+  "version": "2.1.0",
   "repository": {
-    "url": "https://github.com/brave/brave-search-mcp-server",
+    "url": "https://github.com/tobiashochguertel/brave-search-mcp-server",
     "source": "github"
   },
   "packages": [
@@ -12,17 +12,66 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@brave/brave-search-mcp-server",
-      "version": "2.0.75",
+      "version": "2.1.0",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "BRAVE_API_KEY",
-          "description": "Your API key for the service",
+          "description": "Default/fallback API key for the Brave Search API (used when no subscription-specific key is set)",
           "format": "string",
           "isRequired": true,
           "isSecret": true
+        },
+        {
+          "name": "BRAVE_SEARCH_API_KEY",
+          "description": "API key for the Search plan — covers web, news, images, videos, local POIs, llm-context endpoints",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "BRAVE_AI_API_KEY",
+          "description": "API key for the Free AI plan — covers the summarizer endpoint (free tier)",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "BRAVE_PRO_AI_API_KEY",
+          "description": "API key for the Pro AI plan — covers the summarizer endpoint (deprecated Pro AI subscription)",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "BRAVE_ANSWERS_API_KEY",
+          "description": "API key for the Answers plan — covers chat completions and AI answers",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "BRAVE_AUTOSUGGEST_API_KEY",
+          "description": "API key for the Autosuggest plan — covers the /suggest/search endpoint",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "BRAVE_SPELLCHECK_API_KEY",
+          "description": "API key for the Spellcheck plan — covers the /spellcheck/search endpoint",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "BRAVE_API_BASE_URL",
+          "description": "Override the Brave Search API base URL (e.g. to use a local caching proxy). Defaults to https://api.search.brave.com",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false
         }
       ]
     }
