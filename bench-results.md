@@ -1,20 +1,20 @@
 # MCP Server Benchmark Report
 
-_Generated: 2026-03-09T10:06:26.346Z_
-_Duration per scenario: 15s | Connections: 100 | Pipelining: 10_
+_Generated: 2026-03-09T10:40:16.944Z_
+_Duration per scenario: 20s | Connections: 100 | Pipelining: 10_
 _Node URL: `http://localhost:3001` | Bun URL: `http://localhost:3002`_
 
 ## GET /ping (raw throughput)
 
 | Metric | Node.js | Bun | Speedup |
 | ------ | ------- | --- | ------- |
-| Requests/sec (avg) | 24,343 req/s | 11,206 req/s | **0.46×** |
-| Requests/sec (max) | 26,080 req/s | 11,483 req/s | 0.44× |
-| Throughput (avg)   | 6,490 KB/s | 2,473 KB/s | — |
-| Latency p50        | 38 ms | 88 ms | — |
-| Latency p99        | 81 ms | 110 ms | — |
+| Requests/sec (avg) | 45,058 req/s | 17,918 req/s | **0.40×** |
+| Requests/sec (max) | 82,530 req/s | 18,473 req/s | 0.22× |
+| Throughput (avg)   | 7,612 KB/s | 2,205 KB/s | — |
+| Latency p50        | 12 ms | 54 ms | — |
+| Latency p99        | 134 ms | 75 ms | — |
 | Latency p99.9      | N/A ms | N/A ms | — |
-| 2xx responses      | 365,130 | 168,076 | — |
+| 2xx responses      | 901,099 | 358,358 | — |
 | Non-2xx responses  | 0 | 0 | — |
 | Errors             | 0 | 0 | — |
 
@@ -22,13 +22,13 @@ _Node URL: `http://localhost:3001` | Bun URL: `http://localhost:3002`_
 
 | Metric | Node.js | Bun | Speedup |
 | ------ | ------- | --- | ------- |
-| Requests/sec (avg) | 1,342 req/s | 3,131 req/s | **2.33×** |
-| Requests/sec (max) | 2,189 req/s | 4,128 req/s | 1.89× |
-| Throughput (avg)   | 870 KB/s | 2,088 KB/s | — |
+| Requests/sec (avg) | 2,104 req/s | 3,694 req/s | **1.76×** |
+| Requests/sec (max) | 3,030 req/s | 5,230 req/s | 1.73× |
+| Throughput (avg)   | 1,364 KB/s | 2,464 KB/s | — |
 | Latency p50        | 2 ms | 1 ms | — |
-| Latency p99        | 152 ms | 15 ms | — |
+| Latency p99        | 27 ms | 15 ms | — |
 | Latency p99.9      | N/A ms | N/A ms | — |
-| 2xx responses      | 20,133 | 46,962 | — |
+| 2xx responses      | 42,066 | 73,872 | — |
 | Non-2xx responses  | 0 | 0 | — |
 | Errors             | 0 | 0 | — |
 
@@ -36,5 +36,5 @@ _Node URL: `http://localhost:3001` | Bun URL: `http://localhost:3002`_
 
 | Scenario | Node.js avg req/s | Bun avg req/s | Bun Speedup |
 | -------- | ----------------- | ------------- | ----------- |
-| GET /ping (raw throughput) | 24,343 req/s | 11,206 req/s | **0.46×** |
-| POST /mcp (MCP initialize) | 1,342 req/s | 3,131 req/s | **2.33×** |
+| GET /ping (raw throughput) | 45,058 req/s | 17,918 req/s | **0.40×** |
+| POST /mcp (MCP initialize) | 2,104 req/s | 3,694 req/s | **1.76×** |
