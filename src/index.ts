@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { getOptions } from './config.js';
-import { stdioServer, httpServer } from './protocols/index.js';
+import { stdioServer } from './protocols/index.js';
 
 async function main() {
   const options = getOptions();
@@ -12,7 +12,13 @@ async function main() {
 
   // default to stdio server unless http is explicitly requested
   if (options.transport === 'http') {
-    httpServer.start();
+    // Delegate to the runtime-specific entrypoint for HTTP.
+    // Bun exposes globalThis.Bun; Node.js does not.
+    if ((globalThis as Record<string, unknown>).Bun !== undefined) {
+      await import('./entrypoints/bun.js');
+    } else {
+      await import('./entrypoints/node.js');
+    }
     return;
   }
 

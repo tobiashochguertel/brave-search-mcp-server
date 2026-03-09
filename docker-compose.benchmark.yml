@@ -1,0 +1,66 @@
+# docker-compose.benchmark.yml
+# Runs Node.js and Bun variants side-by-side for performance comparison.
+#
+# Usage:
+#   docker compose -f docker-compose.benchmark.yml up --build
+#   # Node.js server: http://localhost:3001/ping
+#   # Bun server:     http://localhost:3002/ping
+#
+# Benchmark (requires autocannon: npm i -g autocannon):
+#   npx autocannon -c 100 -d 30 -p 10 http://localhost:3001/ping
+#   npx autocannon -c 100 -d 30 -p 10 http://localhost:3002/ping
+
+services:
+  mcp-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:8080"
+    environment:
+      - BRAVE_API_KEY=${BRAVE_API_KEY:-}
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
+      - BRAVE_AI_API_KEY=${BRAVE_AI_API_KEY:-}
+      - BRAVE_PRO_AI_API_KEY=${BRAVE_PRO_AI_API_KEY:-}
+      - BRAVE_ANSWERS_API_KEY=${BRAVE_ANSWERS_API_KEY:-}
+      - BRAVE_AUTOSUGGEST_API_KEY=${BRAVE_AUTOSUGGEST_API_KEY:-}
+      - BRAVE_SPELLCHECK_API_KEY=${BRAVE_SPELLCHECK_API_KEY:-}
+      - BRAVE_MCP_TRANSPORT=http
+      - BRAVE_MCP_PORT=8080
+      - BRAVE_MCP_HOST=0.0.0.0
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+    cap_drop:
+      - all
+    security_opt:
+      - no-new-privileges:true
+
+  mcp-bun:
+    build:
+      context: .
+      dockerfile: Dockerfile.bun
+    ports:
+      - "3002:8080"
+    environment:
+      - BRAVE_API_KEY=${BRAVE_API_KEY:-}
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY:-}
+      - BRAVE_AI_API_KEY=${BRAVE_AI_API_KEY:-}
+      - BRAVE_PRO_AI_API_KEY=${BRAVE_PRO_AI_API_KEY:-}
+      - BRAVE_ANSWERS_API_KEY=${BRAVE_ANSWERS_API_KEY:-}
+      - BRAVE_AUTOSUGGEST_API_KEY=${BRAVE_AUTOSUGGEST_API_KEY:-}
+      - BRAVE_SPELLCHECK_API_KEY=${BRAVE_SPELLCHECK_API_KEY:-}
+      - BRAVE_MCP_TRANSPORT=http
+      - BRAVE_MCP_PORT=8080
+      - BRAVE_MCP_HOST=0.0.0.0
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+    cap_drop:
+      - all
+    security_opt:
+      - no-new-privileges:true

@@ -27,6 +27,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { createAdaptorServer } from '@hono/node-server';
 import httpServer from '../../protocols/http.js';
 import { setOptions } from '../../config.js';
 
@@ -73,7 +74,7 @@ beforeAll(async () => {
   });
 
   const app = httpServer.createApp();
-  server = http.createServer(app);
+  server = createAdaptorServer(app) as http.Server;
 
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   serverPort = (server.address() as AddressInfo).port;

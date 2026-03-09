@@ -103,9 +103,14 @@ tasks:
       - node dist/index.js --transport stdio
 
   dev:http:
-    desc: Run MCP server in HTTP mode on port 8080 (requires BRAVE_API_KEY)
+    desc: Run MCP server in HTTP mode on port 8080 via Node.js (requires BRAVE_API_KEY)
     cmds:
-      - node dist/index.js --transport http --port 8080
+      - node dist/entrypoints/node.js
+
+  dev:http:bun:
+    desc: Run MCP server in HTTP mode on port 8080 via Bun (requires BRAVE_API_KEY + bun installed)
+    cmds:
+      - bun --hot src/entrypoints/bun.ts
 
   inspect:
     desc: Open MCP Inspector (stdio transport)
@@ -122,19 +127,30 @@ tasks:
   # ---------------------------------------------------------------------------
 
   docker:build:
-    desc: Build Docker image (tag brave-search-mcp-server:latest)
+    desc: Build Node.js Docker image (tag brave-search-mcp-server:node)
     cmds:
-      - docker build -t brave-search-mcp-server:latest .
+      - docker build -t brave-search-mcp-server:node -t brave-search-mcp-server:latest .
+
+  docker:build:bun:
+    desc: Build Bun Docker image (tag brave-search-mcp-server:bun)
+    cmds:
+      - docker build -f Dockerfile.bun -t brave-search-mcp-server:bun .
 
   docker:build:nc:
-    desc: Build Docker image without cache
+    desc: Build Node.js Docker image without cache
     cmds:
-      - docker build --no-cache -t brave-search-mcp-server:latest .
+      - docker build --no-cache -t brave-search-mcp-server:node .
+
+  docker:build:bun:nc:
+    desc: Build Bun Docker image without cache
+    cmds:
+      - docker build --no-cache -f Dockerfile.bun -t brave-search-mcp-server:bun .
 
   docker:lint:
-    desc: Lint Dockerfile with hadolint (install with brew install hadolint)
+    desc: Lint Dockerfiles with hadolint (install with brew install hadolint)
     cmds:
       - hadolint Dockerfile
+      - hadolint Dockerfile.bun
 
   docker:push:
     desc: Push Docker image to registry (set DOCKER_REGISTRY and DOCKER_TAG)
@@ -164,6 +180,39 @@ tasks:
     desc: Validate docker-compose.yml syntax
     cmds:
       - docker-compose config --quiet && echo "docker-compose.yml is valid"
+      - docker-compose -f docker-compose.benchmark.yml config --quiet && echo "docker-compose.benchmark.yml is valid"
+
+  # ---------------------------------------------------------------------------
+  # Benchmark (Node.js vs Bun)
+  # ---------------------------------------------------------------------------
+
+  bench:start:
+    desc: Start both Node.js and Bun servers via Docker Compose for benchmarking
+    cmds:
+      - docker compose -f docker-compose.benchmark.yml up --build -d
+      - echo "Node.js server → http://localhost:3001/ping"
+      - echo "Bun server     → http://localhost:3002/ping"
+
+  bench:stop:
+    desc: Stop benchmark Docker Compose services
+    cmds:
+      - docker compose -f docker-compose.benchmark.yml down
+
+  bench:ping:node:
+    desc: Benchmark Node.js /ping endpoint with autocannon (install autocannon globally first)
+    cmds:
+      - npx autocannon -c 100 -d 30 -p 10 http://localhost:3001/ping
+
+  bench:ping:bun:
+    desc: Benchmark Bun /ping endpoint with autocannon
+    cmds:
+      - npx autocannon -c 100 -d 30 -p 10 http://localhost:3002/ping
+
+  bench:ping:
+    desc: Benchmark both Node.js and Bun /ping endpoints sequentially
+    cmds:
+      - task: bench:ping:node
+      - task: bench:ping:bun
 
   # ---------------------------------------------------------------------------
   # Release
@@ -176,6 +225,7 @@ tasks:
       - task: build
       - task: test
       - task: docker:build
+      - task: docker:build:bun
 
   release:full:
     desc: Full release check including e2e tests (requires API keys)
