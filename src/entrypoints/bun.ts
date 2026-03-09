@@ -1,5 +1,11 @@
+import config, { getOptions } from '../config.js';
 import { createApp } from '../protocols/http.js';
-import config from '../config.js';
+
+// Parse CLI args + env vars into config state
+const opts = getOptions();
+if (!opts) {
+  process.exit(1);
+}
 
 const app = createApp();
 

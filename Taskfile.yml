@@ -198,21 +198,83 @@ tasks:
     cmds:
       - docker compose -f docker-compose.benchmark.yml down
 
-  bench:ping:node:
-    desc: Benchmark Node.js /ping endpoint with autocannon (install autocannon globally first)
+  bench:local:start:node:
+    desc: Start Node.js server locally on port 3001 for benchmarking (background)
+    env:
+      BRAVE_MCP_PORT: "3001"
+      BRAVE_MCP_TRANSPORT: "http"
     cmds:
-      - npx autocannon -c 100 -d 30 -p 10 http://localhost:3001/ping
+      - node dist/entrypoints/node.js &
+      - echo "Node.js server started on http://localhost:3001"
+
+  bench:local:start:bun:
+    desc: Start Bun server locally on port 3002 for benchmarking (background)
+    env:
+      BRAVE_MCP_PORT: "3002"
+      BRAVE_MCP_TRANSPORT: "http"
+    cmds:
+      - bun src/entrypoints/bun.ts &
+      - echo "Bun server started on http://localhost:3002"
+
+  bench:local:stop:
+    desc: Stop locally-started benchmark servers (kills processes on ports 3001 and 3002)
+    cmds:
+      - lsof -ti:3001 | xargs kill -9 2>/dev/null || true
+      - lsof -ti:3002 | xargs kill -9 2>/dev/null || true
+      - echo "Benchmark servers stopped"
+
+  bench:ping:node:
+    desc: Benchmark Node.js /ping endpoint with autocannon
+    vars:
+      NODE_URL: '{{.NODE_URL | default "http://localhost:3001"}}'
+    cmds:
+      - npx autocannon -c 100 -d 30 -p 10 {{.NODE_URL}}/ping
 
   bench:ping:bun:
     desc: Benchmark Bun /ping endpoint with autocannon
+    vars:
+      BUN_URL: '{{.BUN_URL | default "http://localhost:3002"}}'
     cmds:
-      - npx autocannon -c 100 -d 30 -p 10 http://localhost:3002/ping
+      - npx autocannon -c 100 -d 30 -p 10 {{.BUN_URL}}/ping
 
   bench:ping:
     desc: Benchmark both Node.js and Bun /ping endpoints sequentially
     cmds:
       - task: bench:ping:node
       - task: bench:ping:bun
+
+  bench:report:
+    desc: Run full benchmark script and generate bench-results.md report
+    vars:
+      NODE_URL: '{{.NODE_URL | default "http://localhost:3001"}}'
+      BUN_URL: '{{.BUN_URL | default "http://localhost:3002"}}'
+      BENCH_DURATION: '{{.BENCH_DURATION | default "20"}}'
+    env:
+      NODE_URL: "{{.NODE_URL}}"
+      BUN_URL: "{{.BUN_URL}}"
+      BENCH_DURATION: "{{.BENCH_DURATION}}"
+    cmds:
+      - bun scripts/benchmark.ts
+
+  bench:docker:full:
+    desc: Build Docker images, start containers, run full benchmark, stop containers
+    cmds:
+      - task: docker:build
+      - task: docker:build:bun
+      - task: bench:start
+      - sleep 5
+      - task: bench:report
+      - task: bench:stop
+
+  bench:local:full:
+    desc: Build, start local Node.js+Bun servers, run full benchmark, stop servers
+    cmds:
+      - task: build
+      - task: bench:local:start:node
+      - task: bench:local:start:bun
+      - sleep 3
+      - task: bench:report
+      - task: bench:local:stop
 
   # ---------------------------------------------------------------------------
   # Release

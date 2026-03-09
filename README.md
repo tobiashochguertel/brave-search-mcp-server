@@ -4,6 +4,7 @@
 > It extends the original with **full coverage of all Brave Search API endpoints**:
 > autosuggest, spellcheck, LLM context grounding, and AI answers (including streaming for citations and entities).
 > A custom `BRAVE_API_BASE_URL` setting lets you route all traffic through a caching proxy (e.g. [brave-search-cli](https://github.com/tobiashochguertel/dotfiles)).
+> **Dual-runtime support**: runs on both Node.js and [Bun](https://bun.sh) — Bun delivers ~2× higher throughput and ~5× faster startup.
 >
 > Fork maintained by [@tobiashochguertel](https://github.com/tobiashochguertel).
 
@@ -320,8 +321,18 @@ For manual installation, add the following to your User Settings (JSON) or `.vsc
 
 ### Docker
 
+**Node.js image (default):**
 ```bash
-docker build -t mcp/brave-search:latest .
+docker build -t brave-search-mcp-server:node .
+# or via Taskfile:
+task docker:build
+```
+
+**Bun image (high-performance):**
+```bash
+docker build -f Dockerfile.bun -t brave-search-mcp-server:bun .
+# or via Taskfile:
+task docker:build:bun
 ```
 
 ### Local Build
@@ -331,15 +342,86 @@ npm install
 npm run build
 ```
 
+## Dual Runtime: Node.js + Bun
+
+This server supports both **Node.js** and **[Bun](https://bun.sh)** runtimes via [Hono](https://hono.dev) as the shared HTTP framework. All business logic lives in shared code; only the thin entrypoints differ.
+
+| | Node.js | Bun |
+|---|---|---|
+| Entrypoint | `src/entrypoints/node.ts` | `src/entrypoints/bun.ts` |
+| Start script | `npm run start:node` | `npm run start:bun` |
+| Dev (hot reload) | `npm run dev:node` | `npm run dev:bun` |
+| Docker image | `Dockerfile` | `Dockerfile.bun` |
+| Default port | 3001 (benchmark) | 3002 (benchmark) |
+
+### Running locally
+
+```bash
+# Node.js (HTTP mode)
+BRAVE_API_KEY=... npm run start:node
+
+# Bun (HTTP mode, hot reload)
+BRAVE_API_KEY=... npm run dev:bun
+
+# Default entrypoint (auto-detects runtime)
+BRAVE_MCP_TRANSPORT=http BRAVE_API_KEY=... npm start
+```
+
+### Docker Compose for benchmarking
+
+Both runtimes side-by-side with equal CPU/memory limits:
+
+```bash
+# Start
+docker compose -f docker-compose.benchmark.yml up --build -d
+# Node.js → http://localhost:3001
+# Bun     → http://localhost:3002
+
+# Stop
+docker compose -f docker-compose.benchmark.yml down
+```
+
+### Benchmarking
+
+Run a full comparison benchmark using the included `scripts/benchmark.ts`:
+
+```bash
+# Start both servers (Docker)
+task bench:start
+
+# Generate report (bench-results.md)
+task bench:report
+
+# Stop
+task bench:stop
+
+# Or — all in one:
+task bench:docker:full
+```
+
+For local (non-Docker) benchmarks:
+```bash
+task bench:local:full
+```
+
+Customize via environment variables:
+```bash
+NODE_URL=http://localhost:3001 BUN_URL=http://localhost:3002 \
+  BENCH_DURATION=30 BENCH_CONNECTIONS=200 \
+  task bench:report
+```
+
+
 ## Development
 
 ### Prerequisites
 
-- Node.js 22.x or higher
+- Node.js 22.x or higher (for Node.js runtime)
+- [Bun](https://bun.sh) 1.3+ (optional, for Bun runtime)
 - npm
 - Brave Search API key
 
-### Setup
+
 
 1. Clone the repository:
 ```bash
@@ -397,24 +479,40 @@ STDIO is the default mode. For HTTP mode testing, add `--transport http` to the 
 
 ### Available Scripts
 
-- `npm run build`: Build the TypeScript project
-- `npm run watch`: Watch for changes and rebuild
+**Build:**
+- `npm run build`: Compile TypeScript → `dist/`
+- `npm run watch`: Watch + rebuild on changes
+
+**Run (Node.js):**
+- `npm run start:node`: Start HTTP server with Node.js entrypoint
+- `npm run dev:node`: Dev mode with ts-node (Node.js)
+
+**Run (Bun):**
+- `npm run start:bun`: Start HTTP server with Bun (TypeScript, no compile step)
+- `npm run dev:bun`: Dev mode with Bun hot reload
+
+**Run (auto-detect):**
+- `npm start`: Start in stdio mode (default); set `BRAVE_MCP_TRANSPORT=http` for HTTP
+
+**Format & lint:**
 - `npm run format`: Format code with Prettier
-- `npm run format:check`: Check code formatting
-- `npm run prepare`: Format and build (runs automatically on npm install)
+- `npm run format:check`: Check formatting
+- `npm run prepare`: Format + build (auto on `npm install`)
 
-- `npm run test`: Run unit tests (excludes e2e)
-- `npm run test:e2e`: Run all e2e tests (HTTP + stdio, requires API keys)
-- `npm run test:e2e:http`: Run HTTP transport e2e tests only
-- `npm run test:e2e:stdio`: Run stdio transport e2e tests only
-- `npm run test:all`: Run unit tests + e2e tests
-- `npm run test:coverage`: Run unit tests with coverage report
-- `npm run test:watch`: Run unit tests in watch mode
+**Test:**
+- `npm run test`: Unit tests (excludes e2e)
+- `npm run test:e2e`: All e2e tests (HTTP + stdio, requires API keys)
+- `npm run test:e2e:http`: HTTP transport e2e only
+- `npm run test:e2e:stdio`: stdio transport e2e only
+- `npm run test:all`: Unit + e2e tests
+- `npm run test:coverage`: Unit tests with coverage report
+- `npm run test:watch`: Unit tests in watch mode
 
-- `npm run inspector`: Launch an instance of MCP Inspector
-- `npm run inspector:http`: Launch a instance of MCP Inspector, configured for HTTP
-- `npm run smithery:build`: Build the project for smithery.ai
-- `npm run smithery:dev`: Launch the development environment for smithery.ai
+**Tools:**
+- `npm run inspector`: Launch MCP Inspector
+- `npm run inspector:http`: Launch MCP Inspector (HTTP mode)
+- `npm run smithery:build`: Build for Smithery.ai
+- `npm run smithery:dev`: Dev mode for Smithery.ai
 
 ### Docker Compose
 
