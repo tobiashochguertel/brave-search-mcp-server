@@ -15,4 +15,6 @@ export default {
   port: config.port,
   hostname: config.host,
   fetch: app.fetch,
+  reusePort: true,
+  idleTimeout: 30,
 };

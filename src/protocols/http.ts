@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
@@ -20,7 +19,7 @@ const getTransport = async (req: Request): Promise<WebStandardStreamableHTTPServ
     transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   } else {
     transport = new WebStandardStreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
+      sessionIdGenerator: () => crypto.randomUUID(),
       onsessioninitialized: (id) => {
         transports.set(id, transport);
       },
@@ -37,6 +36,9 @@ const getTransport = async (req: Request): Promise<WebStandardStreamableHTTPServ
 
 export const createApp = () => {
   const app = new Hono();
+
+  // Health check — intentionally before CORS middleware to skip that overhead
+  app.get('/ping', (c) => c.json({ message: 'pong' }));
 
   app.use(
     '*',
@@ -60,8 +62,6 @@ export const createApp = () => {
       );
     }
   });
-
-  app.get('/ping', (c) => c.json({ message: 'pong' }));
 
   return app;
 };
