@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import config from '../config.js';
 import createMcpServer from '../server.js';
+import { createDnsRebindingGuard } from './rebinding.js';
 
 const transports = new Map<string, WebStandardStreamableHTTPServerTransport>();
 
@@ -39,6 +40,14 @@ export const createApp = () => {
 
   // Health check — intentionally before CORS middleware to skip that overhead
   app.get('/ping', (c) => c.json({ message: 'pong' }));
+
+  app.use(
+    '/mcp',
+    createDnsRebindingGuard({
+      allowedHosts: config.allowedHosts,
+      allowedOrigins: config.allowedOrigins,
+    })
+  );
 
   app.use(
     '*',

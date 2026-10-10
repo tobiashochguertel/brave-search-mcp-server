@@ -36,7 +36,7 @@ export const description = `
     Returns a JSON list of web results with title, description, and URL.
     
     When the "results_filter" parameter is empty, JSON results may also contain FAQ, Discussions, News, and Video results.
-`;
+`.trim();
 
 export const execute = async (params: QueryParams) => {
   const response = { content: [] as TextContent[], isError: false };
@@ -63,13 +63,11 @@ export const execute = async (params: QueryParams) => {
   }
 
   // TODO (Sampson): The following is unnecessarily repetitive.
-  if (web && web.results?.length > 0) {
-    for (const entry of formatWebResults(web)) {
-      response.content.push({
-        type: 'text' as const,
-        text: stringify(entry),
-      });
-    }
+  for (const entry of formatWebResults(web)) {
+    response.content.push({
+      type: 'text' as const,
+      text: stringify(entry),
+    });
   }
 
   if (faq && faq.results?.length > 0) {
@@ -126,7 +124,7 @@ export const register = (mcpServer: McpServer) => {
     {
       title: name,
       description: description,
-      inputSchema: params.shape,
+      inputSchema: params,
       annotations: annotations,
     },
     execute

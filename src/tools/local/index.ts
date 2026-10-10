@@ -28,7 +28,7 @@ export const description = `
         - Phone numbers and opening hours
 
     Use this when the query implies 'near me', 'in my area', or mentions specific locations (e.g., 'in San Francisco'). This tool automatically falls back to brave_web_search if no local results are found.
-`;
+`.trim();
 
 // Access to Local API is available through the Pro plans.
 export const execute = async (params: WebQueryParams) => {
@@ -79,16 +79,16 @@ export const register = (mcpServer: McpServer) => {
     {
       title: name,
       description: description,
-      inputSchema: webParams.shape,
+      inputSchema: webParams,
       annotations: annotations,
     },
     execute
   );
 };
 
-const buildFallbackWebResponse = (web_fallback: WebSearchApiResponse['web']): CallToolResult => {
-  if (!web_fallback || web_fallback.results.length === 0) throw new Error('No web results found');
-
+const buildFallbackWebResponse = (
+  web_fallback: NonNullable<WebSearchApiResponse['web']>
+): CallToolResult => {
   const fallback = {
     content: [
       {
@@ -126,7 +126,9 @@ const formatLocalResults = (
   });
 };
 
-const formatOpeningHours = (openingHours?: OpeningHours): Record<string, string> | undefined => {
+export const formatOpeningHours = (
+  openingHours?: OpeningHours
+): Record<string, string> | undefined => {
   if (!openingHours) return undefined;
   /**
    * Response will be something like {
@@ -141,13 +143,16 @@ const formatOpeningHours = (openingHours?: OpeningHours): Record<string, string>
    */
   const today: DayOpeningHours[] = openingHours.current_day || [];
   const response = {} as Record<string, string>;
+  const dayHours: [string, string[]][] = [];
 
-  const dayHours: [string, string[]][] = [
-    [
+  // `current_day` is optional, and is omitted when the location is closed
+  // today, so only seed the "today" entry when the API actually provided one.
+  if (today.length > 0) {
+    dayHours.push([
       `today (${today[0].full_name.toLowerCase()})`,
       today.map(({ opens, closes }) => `${opens}-${closes}`),
-    ],
-  ];
+    ]);
+  }
 
   // Add the rest of the days to the response
   for (let parts of openingHours.days || []) {
@@ -164,6 +169,9 @@ const formatOpeningHours = (openingHours?: OpeningHours): Record<string, string>
         : dayHours.push([dayName, [`${opens}-${closes}`]]);
     }
   }
+
+  // Nothing usable was provided; omit the field rather than emitting `{}`.
+  if (dayHours.length === 0) return undefined;
 
   for (const [name, hours] of dayHours) {
     response[name] = hours.join(', ');

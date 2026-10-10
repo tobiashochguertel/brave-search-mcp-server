@@ -121,14 +121,14 @@ describe('stdio Transport E2E', () => {
 
   // ---- Tool listing ----
   it.skipIf(!hasServerBinary || !hasSearchKey)(
-    'lists all 10 tools via stdio transport',
+    'lists all 11 tools via stdio transport',
     async () => {
       const { client, close } = await createClient();
       try {
         const { tools } = await client.listTools();
         const names = tools.map((t) => t.name);
 
-        expect(names).toHaveLength(10);
+        expect(names).toHaveLength(11);
         expect(names).toContain('brave_web_search');
         expect(names).toContain('brave_news_search');
         expect(names).toContain('brave_image_search');

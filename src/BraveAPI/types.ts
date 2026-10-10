@@ -20,6 +20,11 @@ import type {
 import type { SuggestApiResponse } from '../tools/suggest/types.js';
 import type { SpellcheckApiResponse } from '../tools/spellcheck/types.js';
 import type { LLMContextApiResponse } from '../tools/llm-context/types.js';
+import type {
+  PlaceSearchQueryParams,
+  PlaceSearchRequestHeaders,
+} from '../tools/place_search/schemas/input.js';
+import type { PlaceSearchApiResponse } from '../tools/place_search/schemas/output.js';
 
 export interface RateLimitErrorResponse {
   type: 'ErrorResponse';
@@ -95,5 +100,10 @@ export type Endpoints = {
     params: AnswersRequestBody;
     response: AnswersApiResponse;
     requestHeaders: Headers;
+  };
+  placeSearch: {
+    params: PlaceSearchQueryParams;
+    response: PlaceSearchApiResponse;
+    requestHeaders: PlaceSearchRequestHeaders;
   };
 };

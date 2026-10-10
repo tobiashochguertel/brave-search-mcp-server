@@ -8,6 +8,7 @@ import SuggestTool from './suggest/index.js';
 import SpellcheckTool from './spellcheck/index.js';
 import LLMContextTool from './llm-context/index.js';
 import AnswersTool from './answers/index.js';
+import PlaceSearchTool from './place_search/index.js';
 
 export default {
   WebSearchTool,
@@ -20,4 +21,5 @@ export default {
   SpellcheckTool,
   LLMContextTool,
   AnswersTool,
+  PlaceSearchTool,
 };

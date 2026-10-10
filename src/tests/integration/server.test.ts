@@ -36,11 +36,12 @@ describe('MCP Server integration', () => {
     expect(toolNames).toContain('brave_autosuggest');
     expect(toolNames).toContain('brave_spellcheck');
     expect(toolNames).toContain('brave_llm_context');
+    expect(toolNames).toContain('brave_place_search');
   });
 
-  it('lists exactly 10 tools', async () => {
+  it('lists exactly 11 tools', async () => {
     const { tools: listedTools } = await client.listTools();
-    expect(listedTools).toHaveLength(10);
+    expect(listedTools).toHaveLength(11);
   });
 
   it('web search tool has correct description', async () => {

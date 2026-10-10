@@ -2,6 +2,14 @@ name: Build Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: >
+          Optional explicit release semver (e.g. 2.1.0). Must be greater than the
+          version currently published to npm. Leave empty to bump patch from package.json.
+        required: false
+        default: ''
+        type: string
 
 jobs:
   publish:
@@ -19,7 +27,7 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
 
-      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
@@ -43,9 +51,37 @@ jobs:
 
       - name: Bump version
         id: bump-version
+        env:
+          EXPLICIT_VERSION: ${{ inputs.version }}
         run: |
-          TAG=$(npm version patch --no-git-tag-version)
-          VERSION=${TAG#v}
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').name")
+          PKG_JSON_VERSION=$(node -p "require('./package.json').version")
+          EXPLICIT_RAW=$(printf '%s' "${EXPLICIT_VERSION:-}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+          if [ -z "$EXPLICIT_RAW" ]; then
+            TAG=$(npm version patch --no-git-tag-version)
+            VERSION=${TAG#v}
+          else
+            NPM_LATEST=$(npm view "$PKG" version) || {
+              printf 'Package name (raw): %q\n' "$PKG" >&2
+              echo "::error::Could not read the published version for comparison from npm (see log for package name)."
+              exit 1
+            }
+            CLEANED=$(node -e "const semver=require('semver');const c=semver.clean(process.argv[1]);if(!c){process.exit(1)};process.stdout.write(c)" "$EXPLICIT_RAW") || {
+              printf 'Received explicit version input (raw): %q\n' "$EXPLICIT_RAW" >&2
+              echo "::error::Invalid semver for explicit version (see log for raw value)."
+              exit 1
+            }
+            node -e "const semver=require('semver');const exp=process.argv[1];const latest=process.argv[2];const pkg=process.argv[3];\
+              if(!semver.gt(exp,latest)){console.error('Explicit version',exp,'must be greater than npm latest',latest);process.exit(1);}\
+              if(semver.lt(exp,pkg)){console.error('Explicit version',exp,'must not be less than package.json version',pkg);process.exit(1);}" \
+              "$CLEANED" "$NPM_LATEST" "$PKG_JSON_VERSION"
+            npm version "$CLEANED" --no-git-tag-version --allow-same-version
+            VERSION="$CLEANED"
+            TAG="v${VERSION}"
+          fi
+
           jq --arg v "$VERSION" '(.version,.packages[].version) = $v' server.json > tmp && mv tmp server.json
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
@@ -71,7 +107,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create release
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         id: create_release
         with:
           body_path: ${{ github.workspace }}/RELEASE_NOTES.md
@@ -80,45 +116,45 @@ jobs:
           make_latest: true
 
       - name: Publish NPM package
-        run: npm publish --no-git-checks --access public
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # DockerHub authentication
       - name: Login to Docker Hub
         id: login-docker
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # AWS Marketplace ECR authentication
       - name: Configure AWS Credentials to deploy to AWS Marketplace ECR
-        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
         with:
           role-to-assume: ${{ secrets.MARKETPL_AWS_IAM_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
+        uses: aws-actions/amazon-ecr-login@f2e9fc6c2b355c1890b65e6f6f0e2ac3e6e22f78 # v2.1.2
         with:
           registries: ${{ secrets.MARKETPL_ECR_AWS_ACCOUNT_ID }}
 
       # Build docker image to support multi-architecture (https://aws.amazon.com/blogs/containers/introducing-multi-architecture-container-images-for-amazon-ecr/)
       # Extend Docker build capabilities by using Buildx (https://github.com/docker/buildx)
       - name: Set up QEMU to support multi-architecute builds
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       - name: Set GitHub short SHA Tag
         id: vars
         run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Validate Docker Build Configuration
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           call: check
 
@@ -130,7 +166,7 @@ jobs:
           MARKETPL_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           MARKETPL_REPOSITORY: brave/brave-search-mcp
           IMAGE_RELEASE_TAG: ${{ steps.bump-version.outputs.tag }}
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           platforms: linux/amd64,linux/aarch64
           push: true
@@ -147,8 +183,17 @@ jobs:
       # Publish to MCP Registry
       # Reference: https://github.com/modelcontextprotocol/registry/blob/main/docs/guides/publishing/publish-server.md
       - name: Install MCP Publisher
+        env:
+          MCP_PUBLISHER_VERSION: v1.7.9
         run: |
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.4.1/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          set -euo pipefail
+          FILENAME="mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz"
+          CHECKSUMS_FILE="registry_${MCP_PUBLISHER_VERSION#v}_checksums.txt"
+          BASE_URL="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl -fSL "${BASE_URL}/${FILENAME}" -o "${FILENAME}"
+          curl -fSL "${BASE_URL}/${CHECKSUMS_FILE}" -o checksums.txt
+          grep -E "  ${FILENAME}$" checksums.txt | sha256sum -c
+          tar xzf "${FILENAME}" mcp-publisher
 
       - name: Login to MCP Registry
         run: ./mcp-publisher login github-oidc
