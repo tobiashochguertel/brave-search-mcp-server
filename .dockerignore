@@ -19,3 +19,5 @@ coverage
 .prettierrc
 .prettierignore
 docker-compose.yml
+secrets
+.cursor

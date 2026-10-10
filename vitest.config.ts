@@ -3,7 +3,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
+    // Upstream unit tests (src/**/*.test.ts outside src/tests) use node:test; run via `npm run test:node`.
+    include: ['src/tests/**/*.test.ts', 'tests/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     testTimeout: 60_000, // accommodate real API calls in e2e tests
     coverage: {

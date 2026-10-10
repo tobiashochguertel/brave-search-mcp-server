@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import tools from './tools/index.js';
+import { parseDelimitedList, parsePort, readBraveApiKeyFromFile } from './utils.js';
 
 dotenv.config({ debug: false, quiet: true });
 
@@ -79,6 +80,15 @@ export const configSchema = z.object({
 });
 
 export type SmitheryConfig = z.infer<typeof configSchema>;
+function parseToolNameList(value: string | string[] | undefined | null): string[] {
+  if (value == null) return [];
+  if (Array.isArray(value))
+    return value.map((t: string) => t.trim()).filter((t: string) => t.length > 0);
+  return value
+    .trim()
+    .split(/\s+/)
+    .filter((t: string) => t.length > 0);
+}
 
 type Configuration = {
   transport: 'stdio' | 'http';
@@ -97,12 +107,14 @@ type Configuration = {
   enabledTools: string[];
   disabledTools: string[];
   stateless: boolean;
+  allowedOrigins: string[];
+  allowedHosts: string[];
 };
 
 const state: Configuration & { ready: boolean } = {
   transport: 'stdio',
   port: 8080,
-  host: '0.0.0.0',
+  host: '127.0.0.1',
   braveApiKey: process.env.BRAVE_API_KEY ?? '',
   braveSearchApiKey: process.env.BRAVE_SEARCH_API_KEY ?? '',
   braveAiApiKey: process.env.BRAVE_AI_API_KEY ?? '',
@@ -116,6 +128,8 @@ const state: Configuration & { ready: boolean } = {
   enabledTools: [],
   disabledTools: [],
   stateless: false,
+  allowedOrigins: [],
+  allowedHosts: [],
 };
 
 export function isToolPermittedByUser(toolName: string): boolean {
@@ -161,6 +175,11 @@ export function getOptions(): Configuration | false {
       'API key for Spellcheck plan',
       process.env.BRAVE_SPELLCHECK_API_KEY ?? ''
     )
+    .option(
+      '--brave-api-key-file <string>',
+      'Path to file containing the default/fallback Brave API key',
+      process.env.BRAVE_API_KEY_FILE ?? ''
+    )
     .option('--logging-level <string>', 'Logging level', process.env.BRAVE_MCP_LOG_LEVEL ?? 'info')
     .option(
       '--transport <stdio|http>',
@@ -185,7 +204,17 @@ export function getOptions(): Configuration | false {
     .option(
       '--host <string>',
       'desired host for HTTP transport',
-      process.env.BRAVE_MCP_HOST ?? '0.0.0.0'
+      process.env.BRAVE_MCP_HOST ?? '127.0.0.1'
+    )
+    .option(
+      '--allowed-origins <origins...>',
+      'allowed Origin header values for HTTP transport (DNS rebinding protection)',
+      process.env.BRAVE_MCP_ALLOWED_ORIGINS ?? ''
+    )
+    .option(
+      '--allowed-hosts <hosts...>',
+      'allowed Host header values for HTTP transport (opt-in DNS rebinding protection)',
+      process.env.BRAVE_MCP_ALLOWED_HOSTS ?? ''
     )
     .option(
       '--stateless <boolean>',
@@ -204,20 +233,20 @@ export function getOptions(): Configuration | false {
   const toolNames = Object.values(tools).map((tool) => tool.name);
 
   // Validate tool inclusion configuration
-  const enabledTools = options.enabledTools.filter((t: string) => t.trim().length > 0);
-  const disabledTools = options.disabledTools.filter((t: string) => t.trim().length > 0);
+  const enabledTools = parseToolNameList(options.enabledTools);
+  const disabledTools = parseToolNameList(options.disabledTools);
 
   if (enabledTools.length > 0 && disabledTools.length > 0) {
     console.error('Error: --enabled-tools and --disabled-tools cannot be used together');
     return false;
   }
 
-  if (
-    [...enabledTools, ...disabledTools].some(
-      (t) => t.trim().length > 0 && !toolNames.includes(t.trim())
-    )
-  ) {
-    console.error(`Invalid tool name used. Must be one of: ${toolNames.join(', ')}`);
+  const invalidToolNames = [...enabledTools, ...disabledTools].filter(
+    (t: string) => !toolNames.includes(t)
+  );
+  if (invalidToolNames.length > 0) {
+    console.error(`Invalid tool name(s) used: ${invalidToolNames.join(', ')}`);
+    console.error(`Valid tool names are: ${toolNames.join(', ')}`);
     return false;
   }
 
@@ -236,20 +265,36 @@ export function getOptions(): Configuration | false {
     return false;
   }
 
-  if (!options.braveApiKey && !options.braveSearchApiKey) {
+  const apiKeyFile =
+    typeof options.braveApiKeyFile === 'string' ? options.braveApiKeyFile.trim() : '';
+  let braveApiKey = typeof options.braveApiKey === 'string' ? options.braveApiKey.trim() : '';
+
+  if (apiKeyFile) {
+    const apiKeyFromFile = readBraveApiKeyFromFile(apiKeyFile);
+    if (!apiKeyFromFile.ok) {
+      console.error(`Error: ${apiKeyFromFile.error}`);
+      return false;
+    }
+
+    braveApiKey = apiKeyFromFile.key;
+  }
+
+  if (!braveApiKey && !options.braveSearchApiKey) {
     console.error(
-      'Error: At least one API key is required. Set BRAVE_API_KEY as default, or use subscription-specific keys. Get keys at https://brave.com/search/api/.'
+      'Error: At least one API key is required. Set BRAVE_API_KEY (or --brave-api-key-file / BRAVE_API_KEY_FILE) as default, or use subscription-specific keys. Get keys at https://brave.com/search/api/.'
     );
     return false;
   }
 
   if (options.transport === 'http') {
-    if (options.port < 1 || options.port > 65535) {
+    const port = parsePort(options.port);
+    if (port === null) {
       console.error(
         `Invalid --port value: '${options.port}'. Must be a valid port number between 1 and 65535.`
       );
       return false;
     }
+    options.port = port;
 
     if (!options.host) {
       console.error('Error: --host is required');
@@ -259,9 +304,16 @@ export function getOptions(): Configuration | false {
 
   // Normalize stateless to boolean (CLI passes it as string)
   options.stateless = options.stateless === true || options.stateless === 'true';
+  options.braveApiKey = braveApiKey;
+
+  const allowedOrigins = parseDelimitedList(options.allowedOrigins);
+  options.allowedOrigins = allowedOrigins;
+
+  const allowedHosts = parseDelimitedList(options.allowedHosts);
+  options.allowedHosts = allowedHosts;
 
   // Update state
-  state.braveApiKey = options.braveApiKey;
+  state.braveApiKey = braveApiKey;
   state.braveSearchApiKey = options.braveSearchApiKey ?? '';
   state.braveAiApiKey = options.braveAiApiKey ?? '';
   state.braveProAiApiKey = options.braveProAiApiKey ?? '';
@@ -273,9 +325,11 @@ export function getOptions(): Configuration | false {
   state.port = options.port;
   state.host = options.host;
   state.loggingLevel = options.loggingLevel;
-  state.enabledTools = options.enabledTools;
-  state.disabledTools = options.disabledTools;
+  state.enabledTools = enabledTools;
+  state.disabledTools = disabledTools;
   state.stateless = options.stateless;
+  state.allowedOrigins = allowedOrigins;
+  state.allowedHosts = allowedHosts;
   state.ready = true;
 
   return options as Configuration;

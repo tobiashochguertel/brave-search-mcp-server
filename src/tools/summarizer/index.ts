@@ -24,7 +24,7 @@ export const description = `
     Returns a text summary that consolidates information from the search results. Optional features include inline references to source URLs and additional entity information.
 
     Requirements: Must first perform a web search using brave_web_search with summary=true parameter. Requires a Pro AI subscription to access the summarizer functionality.
-`;
+`.trim();
 
 export const execute = async (params: SummarizerQueryParams) => {
   const response: CallToolResult = { content: [], isError: false };
@@ -56,7 +56,7 @@ export const execute = async (params: SummarizerQueryParams) => {
         text: summaryText,
       });
     }
-  } catch (error) {
+  } catch {
     response.isError = true;
     response.content.push({
       type: 'text' as const,
@@ -73,7 +73,7 @@ export const register = (mcpServer: McpServer) => {
     {
       title: name,
       description: description,
-      inputSchema: summarizerQueryParams.shape,
+      inputSchema: summarizerQueryParams,
       annotations: annotations,
     },
     execute
@@ -93,7 +93,7 @@ const pollForSummary = async (
       if (response.status === 'complete') {
         result = response;
       }
-    } catch (error) {
+    } catch {
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
 
